@@ -66,10 +66,16 @@ def parse_repositories(payload: Sequence[dict]) -> list[Repo]:
     A repository is included when its ``homepage`` field is a non-empty string
     after stripping whitespace and uses an http(s) URL. Other schemes (e.g.
     ``javascript:``) are rejected because the value is emitted as a link href.
-    Archived/fork status is not considered here.
+
+    Forks are excluded: their description/homepage are inherited from the
+    upstream repository, i.e. third-party-controlled text, which would let an
+    upstream author inject content into the generated index. Archived status
+    is not considered.
     """
     repos: list[Repo] = []
     for item in payload:
+        if item.get("fork"):
+            continue
         homepage = (item.get("homepage") or "").strip()
         if not homepage:
             continue

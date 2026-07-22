@@ -64,6 +64,15 @@ class ParseRepositoriesTest(unittest.TestCase):
         self.assertEqual(repo.updated_at, "")
         self.assertEqual(repo.html_url, "")
 
+    def test_excludes_forks(self):
+        payload = [
+            make_raw(name="own", fork=False),
+            make_raw(name="forked", fork=True),
+            make_raw(name="no-flag"),  # missing key treated as not a fork
+        ]
+        repos = bi.parse_repositories(payload)
+        self.assertEqual([r.name for r in repos], ["own", "no-flag"])
+
     def test_captures_html_url(self):
         payload = [make_raw(html_url="https://github.com/u/repo")]
         (repo,) = bi.parse_repositories(payload)
