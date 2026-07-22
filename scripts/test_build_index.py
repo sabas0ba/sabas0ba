@@ -22,6 +22,7 @@ def make_raw(**overrides) -> dict:
         "description": "desc",
         "homepage": "https://example.com",
         "updated_at": "2025-01-01T00:00:00Z",
+        "html_url": "https://github.com/u/repo",
     }
     base.update(overrides)
     return base
@@ -61,6 +62,12 @@ class ParseRepositoriesTest(unittest.TestCase):
         (repo,) = bi.parse_repositories(payload)
         self.assertEqual(repo.description, "")
         self.assertEqual(repo.updated_at, "")
+        self.assertEqual(repo.html_url, "")
+
+    def test_captures_html_url(self):
+        payload = [make_raw(html_url="https://github.com/u/repo")]
+        (repo,) = bi.parse_repositories(payload)
+        self.assertEqual(repo.html_url, "https://github.com/u/repo")
 
 
 class SortRepositoriesTest(unittest.TestCase):
@@ -85,27 +92,51 @@ class UpdatedDateTest(unittest.TestCase):
 
 
 class RenderMarkdownTest(unittest.TestCase):
-    HEADER = "| Repository | Description | Updated |\n| --- | --- | --- |"
+    HEADER = "| Repository | Pages | Description | Updated |\n| --- | --- | --- | --- |"
 
     def test_renders_entries(self):
-        repos = [bi.Repo("proj", "a tool", "https://proj.example", "2025-01-02T00:00:00Z")]
+        repos = [
+            bi.Repo(
+                "proj",
+                "a tool",
+                "https://u.github.io/proj/",
+                "2025-01-02T00:00:00Z",
+                "https://github.com/u/proj",
+            )
+        ]
         md = bi.render_markdown(repos)
         self.assertEqual(
             md,
-            f"{self.HEADER}\n| [proj](https://proj.example) | a tool | 2025-01-02 |",
+            f"{self.HEADER}\n"
+            "| [proj](https://github.com/u/proj) "
+            "| [u.github.io/proj/](https://u.github.io/proj/) "
+            "| a tool | 2025-01-02 |",
         )
 
-    def test_entry_without_description(self):
-        repos = [bi.Repo("proj", "", "https://proj.example", "2025-01-02T00:00:00Z")]
+    def test_entry_without_html_url_renders_plain_name(self):
+        repos = [bi.Repo("proj", "", "https://u.github.io/proj/", "2025-01-02T00:00:00Z")]
         md = bi.render_markdown(repos)
-        self.assertEqual(
-            md, f"{self.HEADER}\n| [proj](https://proj.example) |  | 2025-01-02 |"
+        self.assertIn(
+            "| proj | [u.github.io/proj/](https://u.github.io/proj/) |  | 2025-01-02 |",
+            md,
         )
 
     def test_escapes_pipes_in_cells(self):
-        repos = [bi.Repo("a|b", "x | y", "https://p.example", "2025-01-02T00:00:00Z")]
+        repos = [
+            bi.Repo(
+                "a|b",
+                "x | y",
+                "https://p.example",
+                "2025-01-02T00:00:00Z",
+                "https://github.com/u/ab",
+            )
+        ]
         md = bi.render_markdown(repos)
-        self.assertIn(r"| [a\|b](https://p.example) | x \| y | 2025-01-02 |", md)
+        self.assertIn(
+            r"| [a\|b](https://github.com/u/ab) | [p.example](https://p.example) "
+            r"| x \| y | 2025-01-02 |",
+            md,
+        )
 
     def test_empty_list(self):
         self.assertEqual(bi.render_markdown([]), "_No published repositories found._")
@@ -150,6 +181,20 @@ class RenderHtmlTest(unittest.TestCase):
         self.assertIn("&lt;b&gt;x&lt;/b&gt;", out)
         self.assertIn("a=1&amp;b=2", out)
 
+    def test_renders_separate_repo_and_pages_links(self):
+        repos = [
+            bi.Repo(
+                "proj",
+                "",
+                "https://u.github.io/proj/",
+                "2025-01-01T00:00:00Z",
+                "https://github.com/u/proj",
+            )
+        ]
+        out = bi.render_html(repos, "t")
+        self.assertIn('<a href="https://github.com/u/proj">proj</a>', out)
+        self.assertIn('<a href="https://u.github.io/proj/">u.github.io/proj/</a>', out)
+
     def test_empty_list_renders_placeholder(self):
         out = bi.render_html([], "t")
         self.assertIn("No published repositories found.", out)
@@ -182,7 +227,7 @@ class BuildOrchestrationTest(unittest.TestCase):
                 )
             self.assertEqual([r.name for r in repos], ["new", "old"])
             readme_text = readme.read_text(encoding="utf-8")
-            self.assertIn("[new](https://new.example)", readme_text)
+            self.assertIn("(https://new.example)", readme_text)
             self.assertNotIn("skip", readme_text)
             # new must appear before old (newest first)
             self.assertLess(

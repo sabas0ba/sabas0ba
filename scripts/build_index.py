@@ -44,6 +44,7 @@ class Repo:
     description: str
     homepage: str
     updated_at: str  # ISO 8601 string as returned by the API
+    html_url: str = ""  # repository page on github.com
 
     @property
     def updated_date(self) -> str:
@@ -80,6 +81,7 @@ def parse_repositories(payload: Sequence[dict]) -> list[Repo]:
                 description=(item.get("description") or "").strip(),
                 homepage=homepage,
                 updated_at=item.get("updated_at", ""),
+                html_url=(item.get("html_url") or "").strip(),
             )
         )
     return repos
@@ -95,22 +97,33 @@ def _md_cell(text: str) -> str:
     return text.replace("|", "\\|").replace("\n", " ")
 
 
+def _display_url(url: str) -> str:
+    """Return a URL without its scheme prefix, for use as link text."""
+    for prefix in ("https://", "http://"):
+        if url.lower().startswith(prefix):
+            return url[len(prefix):]
+    return url
+
+
 def render_markdown(repos: Sequence[Repo]) -> str:
     """Render the repository list as a Markdown table fragment.
 
-    The fragment does not include the surrounding markers; see
-    ``replace_readme_section`` for insertion.
+    The Repository column links to the repository on github.com; the Pages
+    column links to the published homepage. The fragment does not include the
+    surrounding markers; see ``replace_readme_section`` for insertion.
     """
     if not repos:
         return "_No published repositories found._"
     lines = [
-        "| Repository | Description | Updated |",
-        "| --- | --- | --- |",
+        "| Repository | Pages | Description | Updated |",
+        "| --- | --- | --- | --- |",
     ]
     for r in repos:
         name = _md_cell(r.name)
+        repo_cell = f"[{name}]({r.html_url})" if r.html_url else name
+        pages_cell = f"[{_md_cell(_display_url(r.homepage))}]({r.homepage})"
         desc = _md_cell(r.description)
-        lines.append(f"| [{name}]({r.homepage}) | {desc} | {r.updated_date} |")
+        lines.append(f"| {repo_cell} | {pages_cell} | {desc} | {r.updated_date} |")
     return "\n".join(lines)
 
 
@@ -141,18 +154,22 @@ def render_html(repos: Sequence[Repo], generated_at: str) -> str:
     rows: list[str] = []
     for r in repos:
         name = html.escape(r.name)
-        href = html.escape(r.homepage, quote=True)
+        repo_href = html.escape(r.html_url, quote=True)
+        pages_href = html.escape(r.homepage, quote=True)
+        pages_text = html.escape(_display_url(r.homepage))
         desc = html.escape(r.description)
         date = html.escape(r.updated_date)
+        repo_cell = f'<a href="{repo_href}">{name}</a>' if r.html_url else name
         rows.append(
-            f'      <tr><td><a href="{href}">{name}</a></td>'
+            f"      <tr><td>{repo_cell}</td>"
+            f'<td><a href="{pages_href}">{pages_text}</a></td>'
             f"<td>{desc}</td>"
             f'<td class="date">{date}</td></tr>'
         )
     body = (
         "\n".join(rows)
         if rows
-        else '      <tr><td colspan="3">No published repositories found.</td></tr>'
+        else '      <tr><td colspan="4">No published repositories found.</td></tr>'
     )
     gen = html.escape(generated_at)
     return (
@@ -176,7 +193,7 @@ def render_html(repos: Sequence[Repo], generated_at: str) -> str:
         "  <h1>Published Repositories</h1>\n"
         "  <table>\n"
         "    <thead>\n"
-        "      <tr><th>Repository</th><th>Description</th><th>Updated</th></tr>\n"
+        "      <tr><th>Repository</th><th>Pages</th><th>Description</th><th>Updated</th></tr>\n"
         "    </thead>\n"
         "    <tbody>\n"
         f"{body}\n"
