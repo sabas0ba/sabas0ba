@@ -90,19 +90,27 @@ def sort_repositories(repos: Iterable[Repo]) -> list[Repo]:
     return sorted(repos, key=lambda r: r.updated_at, reverse=True)
 
 
+def _md_cell(text: str) -> str:
+    """Escape characters that would break Markdown table structure."""
+    return text.replace("|", "\\|").replace("\n", " ")
+
+
 def render_markdown(repos: Sequence[Repo]) -> str:
-    """Render the repository list as a Markdown fragment.
+    """Render the repository list as a Markdown table fragment.
 
     The fragment does not include the surrounding markers; see
     ``replace_readme_section`` for insertion.
     """
     if not repos:
         return "_No published repositories found._"
-    lines: list[str] = []
+    lines = [
+        "| Repository | Description | Updated |",
+        "| --- | --- | --- |",
+    ]
     for r in repos:
-        desc = f" — {r.description}" if r.description else ""
-        date = f" ({r.updated_date})" if r.updated_date else ""
-        lines.append(f"- [{r.name}]({r.homepage}){desc}{date}")
+        name = _md_cell(r.name)
+        desc = _md_cell(r.description)
+        lines.append(f"| [{name}]({r.homepage}) | {desc} | {r.updated_date} |")
     return "\n".join(lines)
 
 
@@ -137,11 +145,15 @@ def render_html(repos: Sequence[Repo], generated_at: str) -> str:
         desc = html.escape(r.description)
         date = html.escape(r.updated_date)
         rows.append(
-            f'    <li><a href="{href}">{name}</a>'
-            f'{f" — {desc}" if desc else ""}'
-            f'{f" <span class=\"date\">({date})</span>" if date else ""}</li>'
+            f'      <tr><td><a href="{href}">{name}</a></td>'
+            f"<td>{desc}</td>"
+            f'<td class="date">{date}</td></tr>'
         )
-    body = "\n".join(rows) if rows else "    <li>No published repositories found.</li>"
+    body = (
+        "\n".join(rows)
+        if rows
+        else '      <tr><td colspan="3">No published repositories found.</td></tr>'
+    )
     gen = html.escape(generated_at)
     return (
         "<!DOCTYPE html>\n"
@@ -151,19 +163,25 @@ def render_html(repos: Sequence[Repo], generated_at: str) -> str:
         '  <meta name="viewport" content="width=device-width, initial-scale=1">\n'
         "  <title>Published Repositories</title>\n"
         "  <style>\n"
-        "    body { font-family: system-ui, sans-serif; max-width: 42rem;"
+        "    body { font-family: system-ui, sans-serif; max-width: 48rem;"
         " margin: 2rem auto; padding: 0 1rem; line-height: 1.6; }\n"
-        "    ul { list-style: none; padding: 0; }\n"
-        "    li { padding: 0.4rem 0; border-bottom: 1px solid #eee; }\n"
-        "    .date { color: #888; font-size: 0.9em; }\n"
+        "    table { border-collapse: collapse; width: 100%; }\n"
+        "    th, td { text-align: left; padding: 0.4rem 0.8rem 0.4rem 0;"
+        " border-bottom: 1px solid #eee; vertical-align: top; }\n"
+        "    .date { color: #888; font-size: 0.9em; white-space: nowrap; }\n"
         "    footer { margin-top: 2rem; color: #888; font-size: 0.85em; }\n"
         "  </style>\n"
         "</head>\n"
         "<body>\n"
         "  <h1>Published Repositories</h1>\n"
-        "  <ul>\n"
+        "  <table>\n"
+        "    <thead>\n"
+        "      <tr><th>Repository</th><th>Description</th><th>Updated</th></tr>\n"
+        "    </thead>\n"
+        "    <tbody>\n"
         f"{body}\n"
-        "  </ul>\n"
+        "    </tbody>\n"
+        "  </table>\n"
         f"  <footer>Generated at {gen}</footer>\n"
         "</body>\n"
         "</html>\n"

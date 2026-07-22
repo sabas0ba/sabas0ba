@@ -85,15 +85,27 @@ class UpdatedDateTest(unittest.TestCase):
 
 
 class RenderMarkdownTest(unittest.TestCase):
+    HEADER = "| Repository | Description | Updated |\n| --- | --- | --- |"
+
     def test_renders_entries(self):
         repos = [bi.Repo("proj", "a tool", "https://proj.example", "2025-01-02T00:00:00Z")]
         md = bi.render_markdown(repos)
-        self.assertEqual(md, "- [proj](https://proj.example) — a tool (2025-01-02)")
+        self.assertEqual(
+            md,
+            f"{self.HEADER}\n| [proj](https://proj.example) | a tool | 2025-01-02 |",
+        )
 
     def test_entry_without_description(self):
         repos = [bi.Repo("proj", "", "https://proj.example", "2025-01-02T00:00:00Z")]
         md = bi.render_markdown(repos)
-        self.assertEqual(md, "- [proj](https://proj.example) (2025-01-02)")
+        self.assertEqual(
+            md, f"{self.HEADER}\n| [proj](https://proj.example) |  | 2025-01-02 |"
+        )
+
+    def test_escapes_pipes_in_cells(self):
+        repos = [bi.Repo("a|b", "x | y", "https://p.example", "2025-01-02T00:00:00Z")]
+        md = bi.render_markdown(repos)
+        self.assertIn(r"| [a\|b](https://p.example) | x \| y | 2025-01-02 |", md)
 
     def test_empty_list(self):
         self.assertEqual(bi.render_markdown([]), "_No published repositories found._")
