@@ -204,6 +204,21 @@ class RenderHtmlTest(unittest.TestCase):
         self.assertIn('<a href="https://github.com/u/proj">proj</a>', out)
         self.assertIn('<a href="https://u.github.io/proj/">u.github.io/proj/</a>', out)
 
+    def test_renders_owner_heading_and_profile_link(self):
+        out = bi.render_html([], "t", owner="someone")
+        self.assertIn("<h1>someone</h1>", out)
+        self.assertIn('<a href="https://github.com/someone">github.com/someone</a>', out)
+
+    def test_renders_tagline_when_given(self):
+        out = bi.render_html([], "t", owner="u", tagline="hello <world>")
+        self.assertIn('<p class="tagline">hello &lt;world&gt;</p>', out)
+
+    def test_omits_tagline_and_profile_when_absent(self):
+        out = bi.render_html([], "t")
+        self.assertNotIn('class="tagline"', out)
+        self.assertNotIn('class="profile"', out)
+        self.assertIn("<h1>Published Repositories</h1>", out)
+
     def test_empty_list_renders_placeholder(self):
         out = bi.render_html([], "t")
         self.assertIn("No published repositories found.", out)

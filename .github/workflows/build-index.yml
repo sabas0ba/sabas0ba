@@ -57,7 +57,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           OWNER: ${{ github.repository_owner }}
-        run: python scripts/build_index.py "$OWNER"
+        run: >-
+          python scripts/build_index.py "$OWNER"
+          --tagline "mochimochi engineer. here are my hobby works:"
       - name: Commit changes if any
         run: |
           if [ -n "$(git status --porcelain README.md docs/index.html)" ]; then
