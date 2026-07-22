@@ -44,6 +44,18 @@ class ParseRepositoriesTest(unittest.TestCase):
         self.assertEqual(repo.homepage, "https://x.example")
         self.assertEqual(repo.description, "hi")
 
+    def test_rejects_non_http_schemes(self):
+        payload = [
+            make_raw(name="js", homepage="javascript:alert(1)"),
+            make_raw(name="ftp", homepage="ftp://x.example"),
+            make_raw(name="rel", homepage="//x.example"),
+            make_raw(name="bare", homepage="x.example"),
+            make_raw(name="ok-http", homepage="http://x.example"),
+            make_raw(name="ok-https", homepage="HTTPS://x.example"),
+        ]
+        repos = bi.parse_repositories(payload)
+        self.assertEqual([r.name for r in repos], ["ok-http", "ok-https"])
+
     def test_missing_optional_fields_default_empty(self):
         payload = [{"name": "n", "homepage": "https://n.example"}]
         (repo,) = bi.parse_repositories(payload)

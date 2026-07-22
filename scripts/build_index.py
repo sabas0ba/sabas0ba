@@ -63,12 +63,16 @@ def parse_repositories(payload: Sequence[dict]) -> list[Repo]:
     """Convert a raw API payload into Repo objects, keeping only those with a homepage.
 
     A repository is included when its ``homepage`` field is a non-empty string
-    after stripping whitespace. Archived/fork status is not considered here.
+    after stripping whitespace and uses an http(s) URL. Other schemes (e.g.
+    ``javascript:``) are rejected because the value is emitted as a link href.
+    Archived/fork status is not considered here.
     """
     repos: list[Repo] = []
     for item in payload:
         homepage = (item.get("homepage") or "").strip()
         if not homepage:
+            continue
+        if urllib.parse.urlparse(homepage).scheme.lower() not in ("http", "https"):
             continue
         repos.append(
             Repo(
