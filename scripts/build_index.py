@@ -99,9 +99,9 @@ def sort_repositories(repos: Iterable[Repo]) -> list[Repo]:
     return sorted(repos, key=lambda r: r.updated_at, reverse=True)
 
 
-def _md_cell(text: str) -> str:
-    """Escape characters that would break Markdown table structure."""
-    return text.replace("|", "\\|").replace("\n", " ")
+def _md_text(text: str) -> str:
+    """Collapse whitespace so a value cannot break the list-item structure."""
+    return " ".join(text.split())
 
 
 def _display_url(url: str) -> str:
@@ -113,24 +113,29 @@ def _display_url(url: str) -> str:
 
 
 def render_markdown(repos: Sequence[Repo]) -> str:
-    """Render the repository list as a Markdown table fragment.
+    """Render the repository list as a Markdown bullet-list fragment.
 
-    The Repository column links to the repository on github.com; the Pages
-    column links to the published homepage. The fragment does not include the
-    surrounding markers; see ``replace_readme_section`` for insertion.
+    A bullet list reflows gracefully at narrow viewport widths, where a table
+    would squeeze every column and grow very tall. Each entry links the
+    repository name to github.com and the published homepage as a short
+    "pages" link; the description, when present, continues on its own line.
+    The fragment does not include the surrounding markers; see
+    ``replace_readme_section`` for insertion.
     """
     if not repos:
         return "_No published repositories found._"
-    lines = [
-        "| Repository | Pages | Description | Updated |",
-        "| --- | --- | --- | --- |",
-    ]
+    lines: list[str] = []
     for r in repos:
-        name = _md_cell(r.name)
-        repo_cell = f"[{name}]({r.html_url})" if r.html_url else name
-        pages_cell = f"[{_md_cell(_display_url(r.homepage))}]({r.homepage})"
-        desc = _md_cell(r.description)
-        lines.append(f"| {repo_cell} | {pages_cell} | {desc} | {r.updated_date} |")
+        name = _md_text(r.name)
+        head = f"**[{name}]({r.html_url})**" if r.html_url else f"**{name}**"
+        head += f" · [pages]({r.homepage})"
+        if r.updated_date:
+            head += f" · <sub>{r.updated_date}</sub>"
+        if r.description:
+            lines.append(f"- {head}<br>")
+            lines.append(f"  {_md_text(r.description)}")
+        else:
+            lines.append(f"- {head}")
     return "\n".join(lines)
 
 
