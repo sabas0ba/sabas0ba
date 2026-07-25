@@ -3,6 +3,8 @@
 mochimochi engineer. here are my hobby works:
 
 <!-- INDEX:START -->
+- **[rv32mbt](https://github.com/sabas0ba/rv32mbt)** · [pages](https://sabas0ba.github.io/rv32mbt/) · <sub>2026-07-25</sub><br>
+  RV32IMA emulator written in MoonBit
 - **[hello_veryl](https://github.com/sabas0ba/hello_veryl)** · [pages](https://sabas0ba.github.io/hello_veryl/) · <sub>2026-07-23</sub><br>
   Veryl + open-source FPGA toolchain playground for Tang Nano 9K (GW1NR-9C)
 - **[font8x16-workbench](https://github.com/sabas0ba/font8x16-workbench)** · [pages](https://sabas0ba.github.io/font8x16-workbench/) · <sub>2026-07-21</sub><br>
