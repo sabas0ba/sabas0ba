@@ -101,8 +101,6 @@ class UpdatedDateTest(unittest.TestCase):
 
 
 class RenderMarkdownTest(unittest.TestCase):
-    HEADER = "| Repository | Pages | Description | Updated |\n| --- | --- | --- | --- |"
-
     def test_renders_entries(self):
         repos = [
             bi.Repo(
@@ -116,36 +114,54 @@ class RenderMarkdownTest(unittest.TestCase):
         md = bi.render_markdown(repos)
         self.assertEqual(
             md,
-            f"{self.HEADER}\n"
-            "| [proj](https://github.com/u/proj) "
-            "| [u.github.io/proj/](https://u.github.io/proj/) "
-            "| a tool | 2025-01-02 |",
+            "- **[proj](https://github.com/u/proj)** "
+            "· [pages](https://u.github.io/proj/) "
+            "· <sub>2025-01-02</sub><br>\n"
+            "  a tool",
         )
 
     def test_entry_without_html_url_renders_plain_name(self):
         repos = [bi.Repo("proj", "", "https://u.github.io/proj/", "2025-01-02T00:00:00Z")]
         md = bi.render_markdown(repos)
-        self.assertIn(
-            "| proj | [u.github.io/proj/](https://u.github.io/proj/) |  | 2025-01-02 |",
+        self.assertEqual(
             md,
+            "- **proj** · [pages](https://u.github.io/proj/) · <sub>2025-01-02</sub>",
         )
 
-    def test_escapes_pipes_in_cells(self):
+    def test_omits_date_when_unparsable(self):
+        repos = [bi.Repo("proj", "", "https://u.github.io/proj/", "not-a-date")]
+        md = bi.render_markdown(repos)
+        self.assertEqual(md, "- **proj** · [pages](https://u.github.io/proj/)")
+
+    def test_flattens_newlines_in_fields(self):
         repos = [
             bi.Repo(
-                "a|b",
-                "x | y",
+                "a\nb",
+                "line one\nline two",
                 "https://p.example",
                 "2025-01-02T00:00:00Z",
                 "https://github.com/u/ab",
             )
         ]
         md = bi.render_markdown(repos)
-        self.assertIn(
-            r"| [a\|b](https://github.com/u/ab) | [p.example](https://p.example) "
-            r"| x \| y | 2025-01-02 |",
-            md,
-        )
+        self.assertIn("[a b](https://github.com/u/ab)", md)
+        self.assertIn("  line one line two", md)
+
+    def test_description_continues_on_indented_line(self):
+        repos = [
+            bi.Repo(
+                "proj",
+                "a tool",
+                "https://u.github.io/proj/",
+                "2025-01-02T00:00:00Z",
+                "https://github.com/u/proj",
+            )
+        ]
+        lines = bi.render_markdown(repos).splitlines()
+        self.assertEqual(len(lines), 2)
+        self.assertTrue(lines[0].startswith("- "))
+        self.assertTrue(lines[0].endswith("<br>"))
+        self.assertTrue(lines[1].startswith("  "))
 
     def test_empty_list(self):
         self.assertEqual(bi.render_markdown([]), "_No published repositories found._")
