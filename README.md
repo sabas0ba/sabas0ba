@@ -3,7 +3,11 @@
 mochimochi engineer. here are my hobby works:
 
 <!-- INDEX:START -->
-- **[rv32mbt](https://github.com/sabas0ba/rv32mbt)** · [pages](https://sabas0ba.github.io/rv32mbt/) · <sub>2026-07-27</sub><br>
+- **[dowel_examples](https://github.com/sabas0ba/dowel_examples)** · [pages](https://sabas0ba.github.io/dowel_examples/) · <sub>2026-07-28</sub><br>
+  examples for sabas0ba/dowel
+- **[kicad_skills](https://github.com/sabas0ba/kicad_skills)** · [pages](https://sabas0ba.github.io/kicad_skills/) · <sub>2026-07-28</sub><br>
+  Container-based toolkit for circuit design: datasheets, SPICE simulation and KiCad review
+- **[rv32mbt](https://github.com/sabas0ba/rv32mbt)** · [pages](https://sabas0ba.github.io/rv32mbt/) · <sub>2026-07-28</sub><br>
   RV32IMA emulator written in MoonBit
 - **[hello_veryl](https://github.com/sabas0ba/hello_veryl)** · [pages](https://sabas0ba.github.io/hello_veryl/) · <sub>2026-07-23</sub><br>
   Veryl + open-source FPGA toolchain playground for Tang Nano 9K (GW1NR-9C)
