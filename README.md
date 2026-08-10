@@ -3,12 +3,12 @@
 mochimochi engineer. here are my hobby works:
 
 <!-- INDEX:START -->
-- **[stone](https://github.com/sabas0ba/stone)** · [pages](https://sabas0ba.github.io/stone/) · <sub>2026-08-07</sub><br>
+- **[dowel](https://github.com/sabas0ba/dowel)** · [pages](https://sabas0ba.github.io/dowel/) · <sub>2026-08-10</sub><br>
+  A build system for C and C++ with incremental manifest evaluation and typed values that carry provenance
+- **[stone](https://github.com/sabas0ba/stone)** · [pages](https://sabas0ba.github.io/stone/) · <sub>2026-08-10</sub><br>
   Compiler bootstrap from hand-encoded RV32 binary on QEMU
 - **[dowel_examples](https://github.com/sabas0ba/dowel_examples)** · [pages](https://sabas0ba.github.io/dowel_examples/) · <sub>2026-08-07</sub><br>
   examples for sabas0ba/dowel
-- **[dowel](https://github.com/sabas0ba/dowel)** · [pages](https://sabas0ba.github.io/dowel/) · <sub>2026-08-07</sub><br>
-  A build system for C and C++ with incremental manifest evaluation and typed values that carry provenance
 - **[rv32mbt](https://github.com/sabas0ba/rv32mbt)** · [pages](https://sabas0ba.github.io/rv32mbt/) · <sub>2026-07-30</sub><br>
   RV32IMAC emulator written in MoonBit. It boots nommu Linux 6.12.
 - **[kicad_skills](https://github.com/sabas0ba/kicad_skills)** · [pages](https://sabas0ba.github.io/kicad_skills/) · <sub>2026-07-29</sub><br>
