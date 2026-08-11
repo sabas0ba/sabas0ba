@@ -6,7 +6,7 @@ name: Build repository index
 # Triggers:
 #   - push to main (immediate refresh on profile edits)
 #   - weekly schedule (Monday 00:00 UTC) to pick up changes in other repos
-#   - manual dispatch
+#   - manual dispatch, optionally re-capturing every card image
 #
 # Actions are pinned to full commit SHAs (supply-chain hardening). The trailing
 # comment records the human-readable version each SHA corresponds to.
@@ -17,6 +17,14 @@ on:
   schedule:
     - cron: "0 0 * * 1"
   workflow_dispatch:
+    inputs:
+      refresh:
+        description: >-
+          Re-capture every card image, ignoring the freshness check. Needed
+          after a change to how screenshots are taken (fonts, viewport size),
+          which no repository update would otherwise pick up.
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -59,13 +67,26 @@ jobs:
       # monogram tile — so this step only reports what was found.
       - name: Report available browser
         run: google-chrome --version || chromium --version || echo "no browser found"
+      # The runner image ships no CJK font, so Japanese text in a project page
+      # screenshots as tofu boxes. Failing to install one only degrades the
+      # screenshots, never the build, hence continue-on-error.
+      - name: Install fonts for screenshots
+        continue-on-error: true
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-noto-cjk fonts-noto-color-emoji
+          fc-cache -f > /dev/null
       - name: Generate index
         env:
           GITHUB_TOKEN: ${{ github.token }}
           OWNER: ${{ github.repository_owner }}
-        run: >-
-          python scripts/build_index.py "$OWNER"
-          --tagline "mochimochi engineer."
+          REFRESH: ${{ inputs.refresh }}
+        run: |
+          args=(--tagline "mochimochi engineer.")
+          if [ "$REFRESH" = "true" ]; then
+            args+=(--refresh)
+          fi
+          python scripts/build_index.py "$OWNER" "${args[@]}"
       - name: Commit changes if any
         run: |
           if [ -n "$(git status --porcelain README.md docs)" ]; then
