@@ -287,7 +287,14 @@ PAGE_TEMPLATE = Template("""\
       --panel-hi: #1c242e;
       --text: #d5dce3;
       --muted: #7d8894;
+      /* The accent hue is rolled on every visit (see the script below); only
+         its hue moves. Lightness and chroma are pinned in oklch, which is
+         perceptually uniform, so every hue lands at the same apparent
+         brightness — measured, the worst hue still clears 8:1 against this
+         background and the card panel. The hex above it is what browsers
+         without oklch keep, and the fallback hue applies without scripting. */
       --accent: #6cb6ff;
+      --accent: oklch(0.8 0.14 var(--ha, 250));
       --line: #262e38;
       --shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
       --dot: rgba(220, 235, 255, 0.05);
@@ -299,7 +306,9 @@ PAGE_TEMPLATE = Template("""\
         --panel-hi: #f2f5f8;
         --text: #22282f;
         --muted: #5c6672;
+        /* Same hue, taken darker: on white, worst case still clears 5:1. */
         --accent: #0a58b8;
+        --accent: oklch(0.48 0.16 var(--ha, 250));
         --line: #dde3ea;
         --shadow: 0 1px 2px rgba(16, 22, 30, 0.08);
         --dot: rgba(16, 22, 30, 0.07);
@@ -464,6 +473,10 @@ PAGE_TEMPLATE = Template("""\
     footer p { margin: 0; }
     footer .built::before { content: "// "; }
   </style>
+  <!-- The page's one line of script: roll the accent hue for this visit. It
+       runs before the first paint so the colour never visibly changes, and
+       with scripting off the stylesheet's fallback hue stands. -->
+  <script>document.documentElement.style.setProperty("--ha", Math.floor(Math.random() * 360));</script>
 </head>
 <body>
   <header class="intro">

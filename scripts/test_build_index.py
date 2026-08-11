@@ -295,6 +295,32 @@ class TileTest(unittest.TestCase):
         self.assertTrue(0 <= bi._hue("dowel") < 360)
 
 
+class AccentTest(unittest.TestCase):
+    """The accent hue is rolled per visit; both themes must follow the same hue."""
+
+    def setUp(self):
+        self.page = bi.render_html([], "t")
+
+    def test_rolls_a_hue_on_load(self):
+        self.assertIn('setProperty("--ha", Math.floor(Math.random() * 360))', self.page)
+
+    def test_both_themes_read_the_rolled_hue(self):
+        accents = re.findall(r"--accent: oklch\(([\d.]+) ([\d.]+) var\(--ha, \d+\)\);",
+                             self.page)
+        self.assertEqual(len(accents), 2)
+        dark, light = accents
+        # the dark theme's accent is the lighter of the two, and neither is
+        # near-white or near-black, which would vanish into a background
+        self.assertGreater(float(dark[0]), float(light[0]))
+        for lightness, chroma in accents:
+            self.assertTrue(0.3 < float(lightness) < 0.9)
+            self.assertGreater(float(chroma), 0.1)
+
+    def test_keeps_a_hex_fallback_before_each_oklch(self):
+        for hex_fallback in ("--accent: #6cb6ff;", "--accent: #0a58b8;"):
+            self.assertIn(hex_fallback, self.page)
+
+
 class RenderHtmlTest(unittest.TestCase):
     def test_escapes_dynamic_values(self):
         repos = [
