@@ -26,6 +26,21 @@ class FakeRepo:
     homepage: str = "https://u.github.io/proj/"
     updated_at: str = "2025-01-01T00:00:00Z"
     preview_url: str = ""
+    preview_dark_url: str = ""
+
+
+def fake_screenshot(light: bytes = b"light-png", dark: bytes = b""):
+    """Stand in for the browser: write bytes so the light/dark compare is real."""
+
+    def _shot(browser, url, dest, dark_mode=False, **kwargs):
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_bytes(dark if (dark_mode and dark) else light)
+        return True
+
+    def _entry(browser, url, dest, dark=False):
+        return _shot(browser, url, dest, dark_mode=dark)
+
+    return _entry
 
 
 PAGE = """
@@ -120,15 +135,11 @@ class ManifestTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             out = Path(d)
             (out / "proj.png").write_bytes(b"x")
-            fresh = {"updated_at": repo.updated_at, "file": "proj.png"}
+            fresh = {"updated_at": repo.updated_at, "file": "proj.png", "dark": ""}
             self.assertTrue(cp.is_current(fresh, repo, out))
             self.assertFalse(cp.is_current(None, repo, out))
-            self.assertFalse(
-                cp.is_current({"updated_at": "older", "file": "proj.png"}, repo, out)
-            )
-            self.assertFalse(
-                cp.is_current({"updated_at": repo.updated_at, "file": "gone.png"}, repo, out)
-            )
+            self.assertFalse(cp.is_current({**fresh, "updated_at": "older"}, repo, out))
+            self.assertFalse(cp.is_current({**fresh, "file": "gone.png"}, repo, out))
 
     def test_prune_removes_unreferenced_files(self):
         with tempfile.TemporaryDirectory() as d:
@@ -176,7 +187,7 @@ class CaptureTest(unittest.TestCase):
 
     def test_screenshots_when_the_page_has_no_animation(self):
         with mock.patch.object(cp, "fetch_page", return_value="<html></html>"), \
-                mock.patch.object(cp, "screenshot", return_value=True) as shot, \
+                mock.patch.object(cp, "screenshot", side_effect=fake_screenshot()) as shot, \
                 mock.patch.object(cp, "find_browser", return_value="/usr/bin/chrome"):
             (repo,) = self._capture([FakeRepo()])
         self.assertEqual(repo.preview_url, "previews/proj.png")
@@ -209,7 +220,7 @@ class CaptureTest(unittest.TestCase):
         cp.save_manifest(
             self.out / cp.MANIFEST_NAME,
             {"proj": {"updated_at": "2025-01-01T00:00:00Z", "file": "proj.png",
-                      "source": "screenshot"}},
+                      "dark": "", "source": "screenshot"}},
         )
         with mock.patch.object(cp, "fetch_page") as fetch, \
                 mock.patch.object(cp, "find_browser", return_value="/usr/bin/chrome"):
@@ -226,10 +237,10 @@ class CaptureTest(unittest.TestCase):
                       "source": "screenshot"}},
         )
         with mock.patch.object(cp, "fetch_page", return_value="<html></html>"), \
-                mock.patch.object(cp, "screenshot", return_value=True) as shot, \
+                mock.patch.object(cp, "screenshot", side_effect=fake_screenshot()) as shot, \
                 mock.patch.object(cp, "find_browser", return_value="/usr/bin/chrome"):
             self._capture([FakeRepo()])
-        shot.assert_called_once()
+        self.assertEqual(shot.call_count, 2)  # the light view, then the dark one
 
     def test_refresh_ignores_the_freshness_check(self):
         self.out.mkdir(parents=True)
@@ -237,13 +248,13 @@ class CaptureTest(unittest.TestCase):
         cp.save_manifest(
             self.out / cp.MANIFEST_NAME,
             {"proj": {"updated_at": "2025-01-01T00:00:00Z", "file": "proj.png",
-                      "source": "screenshot"}},
+                      "dark": "", "source": "screenshot"}},
         )
         with mock.patch.object(cp, "fetch_page", return_value="<html></html>"), \
-                mock.patch.object(cp, "screenshot", return_value=True) as shot, \
+                mock.patch.object(cp, "screenshot", side_effect=fake_screenshot()) as shot, \
                 mock.patch.object(cp, "find_browser", return_value="/usr/bin/chrome"):
             self._capture([FakeRepo()], refresh=True)
-        shot.assert_called_once()
+        self.assertEqual(shot.call_count, 2)  # the light view, then the dark one
 
     def test_writes_manifest_and_prunes_dropped_projects(self):
         self.out.mkdir(parents=True)
@@ -253,7 +264,7 @@ class CaptureTest(unittest.TestCase):
             {"gone": {"updated_at": "x", "file": "gone.png", "source": "screenshot"}},
         )
         with mock.patch.object(cp, "fetch_page", return_value="<html></html>"), \
-                mock.patch.object(cp, "screenshot", return_value=True), \
+                mock.patch.object(cp, "screenshot", side_effect=fake_screenshot()), \
                 mock.patch.object(cp, "find_browser", return_value="/usr/bin/chrome"):
             self._capture([FakeRepo()])
         manifest = json.loads((self.out / cp.MANIFEST_NAME).read_text(encoding="utf-8"))
@@ -263,10 +274,84 @@ class CaptureTest(unittest.TestCase):
 
     def test_url_prefix_overrides_the_directory_name(self):
         with mock.patch.object(cp, "fetch_page", return_value="<html></html>"), \
-                mock.patch.object(cp, "screenshot", return_value=True), \
+                mock.patch.object(cp, "screenshot", side_effect=fake_screenshot()), \
                 mock.patch.object(cp, "find_browser", return_value="/usr/bin/chrome"):
             (repo,) = self._capture([FakeRepo()], url_prefix="assets/shots")
         self.assertEqual(repo.preview_url, "assets/shots/proj.png")
+
+    def test_a_page_with_a_dark_view_keeps_both_captures(self):
+        with mock.patch.object(cp, "fetch_page", return_value="<html></html>"), \
+                mock.patch.object(cp, "screenshot",
+                                  side_effect=fake_screenshot(dark=b"dark-png")), \
+                mock.patch.object(cp, "find_browser", return_value="/usr/bin/chrome"):
+            (repo,) = self._capture([FakeRepo()])
+        self.assertEqual(repo.preview_url, "previews/proj.png")
+        self.assertEqual(repo.preview_dark_url, "previews/proj-dark.png")
+        self.assertTrue((self.out / "proj-dark.png").is_file())
+        manifest = json.loads((self.out / cp.MANIFEST_NAME).read_text(encoding="utf-8"))
+        self.assertEqual(manifest["proj"]["dark"], "proj-dark.png")
+
+    def test_a_page_that_looks_the_same_keeps_only_one_capture(self):
+        with mock.patch.object(cp, "fetch_page", return_value="<html></html>"), \
+                mock.patch.object(cp, "screenshot", side_effect=fake_screenshot()), \
+                mock.patch.object(cp, "find_browser", return_value="/usr/bin/chrome"):
+            (repo,) = self._capture([FakeRepo()])
+        self.assertEqual(repo.preview_dark_url, "")
+        self.assertFalse((self.out / "proj-dark.png").exists())
+        manifest = json.loads((self.out / cp.MANIFEST_NAME).read_text(encoding="utf-8"))
+        self.assertEqual(manifest["proj"]["dark"], "")
+
+    def test_the_dark_capture_asks_for_dark_and_nothing_else(self):
+        with mock.patch.object(cp, "fetch_page", return_value="<html></html>"), \
+                mock.patch.object(cp, "screenshot",
+                                  side_effect=fake_screenshot(dark=b"dark-png")) as shot, \
+                mock.patch.object(cp, "find_browser", return_value="/usr/bin/chrome"):
+            self._capture([FakeRepo()])
+        light_call, dark_call = shot.call_args_list
+        self.assertFalse(light_call.kwargs.get("dark", False))
+        self.assertTrue(dark_call.kwargs["dark"])
+        # the flag only answers the media query; it must not force-darken pages
+        self.assertEqual(cp.DARK_FLAGS, ("--blink-settings=preferredColorScheme=0",))
+
+    def test_a_failed_dark_capture_still_leaves_the_light_one(self):
+        def only_light(browser, url, dest, dark=False):
+            if dark:
+                return False
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_bytes(b"light-png")
+            return True
+
+        with mock.patch.object(cp, "fetch_page", return_value="<html></html>"), \
+                mock.patch.object(cp, "screenshot", side_effect=only_light), \
+                mock.patch.object(cp, "find_browser", return_value="/usr/bin/chrome"):
+            (repo,) = self._capture([FakeRepo()])
+        self.assertEqual(repo.preview_url, "previews/proj.png")
+        self.assertEqual(repo.preview_dark_url, "")
+
+    def test_reuse_requires_the_dark_file_to_still_be_there(self):
+        self.out.mkdir(parents=True)
+        (self.out / "proj.png").write_bytes(b"png")
+        entry = {"updated_at": "2025-01-01T00:00:00Z", "file": "proj.png",
+                 "dark": "proj-dark.png", "source": "screenshot"}
+        self.assertFalse(cp.is_current(entry, FakeRepo(), self.out))
+        (self.out / "proj-dark.png").write_bytes(b"png2")
+        self.assertTrue(cp.is_current(entry, FakeRepo(), self.out))
+
+    def test_an_entry_from_before_dark_captures_is_stale(self):
+        self.out.mkdir(parents=True)
+        (self.out / "proj.png").write_bytes(b"png")
+        old = {"updated_at": "2025-01-01T00:00:00Z", "file": "proj.png",
+               "source": "screenshot"}
+        self.assertFalse(cp.is_current(old, FakeRepo(), self.out))
+        self.assertTrue(cp.is_current({**old, "dark": ""}, FakeRepo(), self.out))
+
+    def test_prune_keeps_dark_captures(self):
+        self.out.mkdir(parents=True)
+        for name in ("proj.png", "proj-dark.png", "stale-dark.png"):
+            (self.out / name).write_bytes(b"x")
+        removed = cp.prune(self.out, {"proj": {"file": "proj.png", "dark": "proj-dark.png"}})
+        self.assertEqual(removed, ["stale-dark.png"])
+        self.assertTrue((self.out / "proj-dark.png").exists())
 
     def test_failed_screenshot_leaves_the_card_without_an_image(self):
         with mock.patch.object(cp, "fetch_page", return_value="<html></html>"), \
