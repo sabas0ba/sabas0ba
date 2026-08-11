@@ -3,25 +3,25 @@
     "dark": "deco-dark.png",
     "file": "deco.png",
     "source": "screenshot",
-    "updated_at": "2026-08-11T09:35:31Z"
+    "updated_at": "2026-08-11T10:00:02Z"
   },
   "dowel": {
     "dark": "dowel-dark.png",
     "file": "dowel.png",
     "source": "screenshot",
-    "updated_at": "2026-08-11T09:05:12Z"
+    "updated_at": "2026-08-11T10:02:12Z"
   },
   "dowel_examples": {
     "dark": "dowel_examples-dark.png",
     "file": "dowel_examples.png",
     "source": "screenshot",
-    "updated_at": "2026-08-11T02:43:09Z"
+    "updated_at": "2026-08-11T09:58:36Z"
   },
   "font8x16-workbench": {
-    "dark": "",
+    "dark": "font8x16-workbench-dark.png",
     "file": "font8x16-workbench.png",
     "source": "screenshot",
-    "updated_at": "2026-08-11T07:49:42Z"
+    "updated_at": "2026-08-11T09:59:58Z"
   },
   "hello_veryl": {
     "dark": "hello_veryl-dark.png",
@@ -30,7 +30,7 @@
     "updated_at": "2026-07-23T13:44:11Z"
   },
   "hoshizora": {
-    "dark": "",
+    "dark": "hoshizora-dark.png",
     "file": "hoshizora.png",
     "source": "screenshot",
     "updated_at": "2026-08-11T09:25:19Z"
@@ -57,6 +57,6 @@
     "dark": "",
     "file": "stone.png",
     "source": "screenshot",
-    "updated_at": "2026-08-11T09:15:28Z"
+    "updated_at": "2026-08-11T10:00:51Z"
   }
 }

@@ -164,11 +164,50 @@ class FindBrowserTest(unittest.TestCase):
             self.assertEqual(cp.find_browser(), "")
 
 
+class ShootTest(unittest.TestCase):
+    """A driven browser is preferred; the switch-driven capture is the fallback."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.dest = Path(self.tmp.name) / "shot.png"
+
+    def test_uses_the_session_when_it_works(self):
+        session = mock.Mock(alive=True, **{"capture.return_value": True})
+        with mock.patch.object(cp, "screenshot") as fallback:
+            self.assertTrue(cp.shoot("/usr/bin/chrome", session, "https://x/", self.dest,
+                                     dark=True, settle=1.5))
+        session.capture.assert_called_once_with("https://x/", self.dest, True, 1.5)
+        fallback.assert_not_called()
+
+    def test_falls_back_when_the_session_cannot_capture(self):
+        session = mock.Mock(alive=True, **{"capture.return_value": False})
+        with mock.patch.object(cp, "screenshot", return_value=True) as fallback:
+            self.assertTrue(cp.shoot("/usr/bin/chrome", session, "https://x/", self.dest))
+        fallback.assert_called_once()
+
+    def test_falls_back_when_the_browser_died(self):
+        session = mock.Mock(alive=False)
+        with mock.patch.object(cp, "screenshot", return_value=True) as fallback:
+            self.assertTrue(cp.shoot("/usr/bin/chrome", session, "https://x/", self.dest))
+        session.capture.assert_not_called()
+        fallback.assert_called_once()
+
+    def test_without_a_session_or_a_browser_there_is_no_capture(self):
+        with mock.patch.object(cp, "screenshot") as fallback:
+            self.assertFalse(cp.shoot("", None, "https://x/", self.dest))
+        fallback.assert_not_called()
+
+
 class CaptureTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.out = Path(self.tmp.name) / "previews"
+        # no browser is launched in tests; the switch-driven path is exercised
+        no_session = mock.patch.object(cp, "open_session", return_value=None)
+        no_session.start()
+        self.addCleanup(no_session.stop)
 
     def _capture(self, repos, **kwargs):
         kwargs.setdefault("browser", "/usr/bin/chrome")
