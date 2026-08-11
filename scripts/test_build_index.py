@@ -332,7 +332,7 @@ class TagsTest(unittest.TestCase):
             bi.Repo("b", "", "u", "t", tags=("rust", "web")),
             bi.Repo("c", "", "u", "t", tags=("rust", "cli")),
         ]
-        self.assertEqual(bi.collect_tags(repos), ["rust", "cli", "web"])
+        self.assertEqual(bi.collect_tags(repos), [("rust", 3), ("cli", 2), ("web", 1)])
 
     def test_collect_is_capped(self):
         repos = [bi.Repo("a", "", "u", "t", tags=tuple(f"t{i}" for i in range(30)))]
@@ -349,11 +349,11 @@ class RenderTagBarTest(unittest.TestCase):
 
     def test_bar_lists_every_tag_as_a_pressable_chip(self):
         out = bi.render_html(self.repos(), "t")
-        self.assertIn('<nav class="tags" hidden', out)
-        for tag in ("rust", "cli"):
+        self.assertIn('<nav class="tags" aria-label="filter projects by tag">', out)
+        for tag, count in (("rust", 2), ("cli", 1)):
             self.assertIn(
                 f'<button type="button" class="tag" data-tag="{tag}"'
-                f' aria-pressed="false">{tag}</button>',
+                f' aria-pressed="false">{tag}<span class="n">{count}</span></button>',
                 out,
             )
 
@@ -378,11 +378,47 @@ class RenderTagBarTest(unittest.TestCase):
         self.assertNotIn('data-tag="x"y"', out)
         self.assertIn("&quot;", out)
 
-    def test_hidden_elements_take_display_back_from_the_class_rule(self):
-        # .tags and .card set display, which outranks the UA rule for [hidden]
+    def test_controls_are_inert_without_scripting(self):
         out = bi.render_html(self.repos(), "t")
-        self.assertIn(".tags[hidden] { display: none; }", out)
-        self.assertIn(".card[hidden] { display: none; }", out)
+        self.assertIn('document.documentElement.classList.add("js")', out)
+        self.assertIn(":root:not(.js) .tags { display: none; }", out)
+        self.assertIn(":root:not(.js) .card-tags .tag {", out)
+
+    def test_hidden_cards_take_display_back_from_the_class_rule(self):
+        # .card sets display, which outranks the UA rule for [hidden]
+        self.assertIn(".card[hidden] { display: none; }", bi.render_html(self.repos(), "t"))
+
+    def test_cards_show_their_own_tags_as_the_same_control(self):
+        out = bi.render_html(self.repos(), "t")
+        card = out.split('<article class="card"')[1]
+        self.assertIn('<p class="card-tags">', card)
+        self.assertIn(
+            '<button type="button" class="tag" data-tag="rust" aria-pressed="false">'
+            "rust</button>",
+            card,
+        )
+
+    def test_card_tags_omit_the_count(self):
+        card = bi.render_html(self.repos(), "t").split('<article class="card"')[1]
+        self.assertNotIn('class="n"', card.split("</article>")[0])
+
+    def test_card_tag_list_is_capped(self):
+        many = tuple(f"t{i}" for i in range(bi.MAX_CARD_TAGS + 4))
+        repos = [
+            bi.Repo("a", "", "https://a.example", "t", tags=many),
+            bi.Repo("b", "", "https://b.example", "t", tags=many),
+        ]
+        card = bi.render_html(repos, "t").split('<article class="card"')[1]
+        card = card.split("</article>")[0]
+        self.assertEqual(card.count('<button type="button"'), bi.MAX_CARD_TAGS)
+
+    def test_cards_without_tags_get_no_tag_row(self):
+        repos = [
+            bi.Repo("a", "", "https://a.example", "t", tags=("rust", "cli")),
+            bi.Repo("b", "", "https://b.example", "t"),
+        ]
+        second = bi.render_html(repos, "t").split('<article class="card"')[2]
+        self.assertNotIn('class="card-tags"', second)
 
     def test_count_is_addressable_for_the_filter_script(self):
         out = bi.render_html(self.repos(), "t")
