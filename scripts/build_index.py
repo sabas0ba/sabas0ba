@@ -290,6 +290,7 @@ PAGE_TEMPLATE = Template("""\
       --accent: #6cb6ff;
       --line: #262e38;
       --shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+      --dot: rgba(220, 235, 255, 0.05);
     }
     @media (prefers-color-scheme: light) {
       :root {
@@ -301,6 +302,7 @@ PAGE_TEMPLATE = Template("""\
         --accent: #0a58b8;
         --line: #dde3ea;
         --shadow: 0 1px 2px rgba(16, 22, 30, 0.08);
+        --dot: rgba(16, 22, 30, 0.07);
       }
     }
     * { box-sizing: border-box; }
@@ -311,8 +313,13 @@ PAGE_TEMPLATE = Template("""\
       margin: 0 auto;
       padding: 3rem 1.25rem 4rem;
       line-height: 1.65;
-      background: var(--bg);
       color: var(--text);
+      /* Graph-paper dots behind everything: texture at a glance, invisible
+         once you start reading. Fixed, so scrolling slides the page over it. */
+      background:
+        radial-gradient(circle at 1px 1px, var(--dot) 1px, transparent 0)
+          0 0 / 26px 26px fixed,
+        var(--bg);
     }
     a { color: var(--accent); text-decoration: none; }
     a:hover { text-decoration: underline; }
@@ -328,6 +335,19 @@ PAGE_TEMPLATE = Template("""\
       flex: none;
     }
     h1 { margin: 0; font-size: 1.35rem; font-weight: 600; letter-spacing: -0.01em; }
+    /* A terminal caret parked after the name. Drawn as a box rather than a
+       glyph so it does not depend on the font that ends up being used. */
+    h1::after {
+      content: "";
+      display: inline-block;
+      width: 0.5em;
+      height: 1.05em;
+      margin-left: 0.32rem;
+      vertical-align: -0.16em;
+      background: var(--accent);
+      animation: caret 1.15s steps(1, end) infinite;
+    }
+    @keyframes caret { 0%, 55% { opacity: 1; } 55.01%, 100% { opacity: 0; } }
     .tagline { margin: 0.15rem 0 0; color: var(--text); }
     .profile { margin: 0.15rem 0 0; color: var(--muted); font-size: 0.85rem; }
 
@@ -363,19 +383,32 @@ PAGE_TEMPLATE = Template("""\
       overflow: hidden;
       box-shadow: var(--shadow);
       transition: border-color 0.15s ease, transform 0.15s ease;
+      /* Cards deal themselves in on load, one after the next. The delay is
+         capped so a long list does not keep the reader waiting. */
+      animation: deal 0.45s cubic-bezier(0.2, 0.7, 0.3, 1) backwards;
+      animation-delay: calc(min(var(--i), 11) * 55ms);
+    }
+    @keyframes deal {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: none; }
     }
     .card:hover { border-color: var(--accent); transform: translateY(-2px); }
+    /* The preview leans in a little under the cursor; the card clips it. */
+    .card:hover .shot img, .card:hover .tile { transform: scale(1.035); }
     @media (prefers-reduced-motion: reduce) {
-      .card, .card:hover { transition: none; transform: none; }
+      .card, .card:hover { transition: none; transform: none; animation: none; }
+      .card:hover .shot img, .card:hover .tile { transform: none; }
+      h1::after { animation: none; }
     }
 
-    .shot { display: block; background: var(--panel-hi); }
+    .shot { display: block; background: var(--panel-hi); overflow: hidden; }
     .shot img {
       display: block;
       width: 100%;
       aspect-ratio: 16 / 9;
       object-fit: cover;
       border-bottom: 1px solid var(--line);
+      transition: transform 0.3s ease;
     }
     .tile {
       display: flex;
@@ -383,6 +416,7 @@ PAGE_TEMPLATE = Template("""\
       justify-content: center;
       aspect-ratio: 16 / 9;
       border-bottom: 1px solid var(--line);
+      transition: transform 0.3s ease;
       background:
         repeating-linear-gradient(
           -45deg,
@@ -480,12 +514,16 @@ def _render_thumb(repo: Repo) -> str:
     )
 
 
-def _render_card(repo: Repo) -> str:
-    """Render one project card: preview, name, description, links and date."""
+def _render_card(repo: Repo, index: int = 0) -> str:
+    """Render one project card: preview, name, description, links and date.
+
+    ``index`` is the card's position in the grid, which the stylesheet turns
+    into the delay before the card animates in.
+    """
     name = html.escape(repo.name)
     pages_href = html.escape(repo.homepage, quote=True)
     lines = [
-        '      <article class="card">',
+        f'      <article class="card" style="--i: {index}">',
         f'        <a class="shot" href="{pages_href}">{_render_thumb(repo)}</a>',
         '        <div class="body">',
         f'          <h3><a href="{pages_href}">{name}</a></h3>',
@@ -520,7 +558,11 @@ def render_html(
     the account sets one); ``year`` adds a copyright line naming the same person
     as the heading. All dynamic values are HTML-escaped.
     """
-    body = "\n".join(_render_card(r) for r in repos) if repos else EMPTY_STATE
+    body = (
+        "\n".join(_render_card(r, i) for i, r in enumerate(repos))
+        if repos
+        else EMPTY_STATE
+    )
     heading = html.escape((profile.display_name if profile else "") or owner)
     profile_href = html.escape(
         (profile.html_url if profile else "") or f"https://github.com/{owner}",

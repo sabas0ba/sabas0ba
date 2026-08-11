@@ -7,6 +7,7 @@ orchestration path with a fake fetch. Run with: python -m unittest discover -s s
 
 from __future__ import annotations
 
+import re
 import tempfile
 import unittest
 import urllib.error
@@ -320,7 +321,7 @@ class RenderHtmlTest(unittest.TestCase):
             )
         ]
         out = bi.render_html(repos, "t")
-        self.assertIn('<article class="card">', out)
+        self.assertIn('<article class="card" style="--i: 0">', out)
         self.assertIn('<h3><a href="https://u.github.io/proj/">proj</a></h3>', out)
         self.assertIn('<a href="https://github.com/u/proj">source</a>', out)
         self.assertIn('<p class="desc">a tool</p>', out)
@@ -397,6 +398,15 @@ class RenderHtmlTest(unittest.TestCase):
         self.assertNotIn('class="tagline"', out)
         self.assertNotIn('class="profile"', out)
         self.assertIn("<h1>Published Repositories</h1>", out)
+
+    def test_cards_carry_their_position_for_the_entrance_delay(self):
+        repos = [
+            bi.Repo(n, "", f"https://u.github.io/{n}/", "2025-01-01T00:00:00Z")
+            for n in ("a", "b", "c")
+        ]
+        out = bi.render_html(repos, "t")
+        positions = re.findall(r'<article class="card" style="--i: (\d+)">', out)
+        self.assertEqual(positions, ["0", "1", "2"])
 
     def test_section_label_counts_projects(self):
         repos = [bi.Repo("proj", "", "https://u.github.io/proj/", "2025-01-01T00:00:00Z")]
