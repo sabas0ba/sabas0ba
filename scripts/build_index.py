@@ -64,16 +64,24 @@ MAX_CARD_TAGS = 6
 PREVIEW_DIRS = ("docs", "docs/assets", "assets", ".github", "")
 PREVIEW_STEMS = ("preview", "demo", "screenshot", "hero", "banner")
 
-# Lower rank = preferred. Animated formats come first: a moving demo says more
-# about a web app than a still frame does.
+# Lower rank = preferred. Ordered by how much a format can say: what always
+# moves, then what can, then still frames — a moving demo says more about a web
+# app than a still one does — and within the stills, by what suits the web.
+#
+# SVG is accepted: the file is loaded as an <img>, which renders the drawing
+# but does not run script inside it, and CSS or SMIL animation inside it does
+# play. BMP is accepted too, though it is last for a reason — nothing
+# compresses it, so a full-size one is megabytes the card has to fetch.
 PREVIEW_EXTENSIONS = {
-    ".gif": 0,
+    ".gif": 0,  # animated by definition
     ".apng": 1,
-    ".webp": 2,  # may be animated; still frames are fine too
-    ".avif": 3,
-    ".png": 4,
-    ".jpg": 5,
-    ".jpeg": 5,
+    ".svg": 2,  # may animate, and is the only one that scales without loss
+    ".webp": 3,  # may be animated; still frames are fine too
+    ".avif": 4,
+    ".png": 5,
+    ".jpg": 6,
+    ".jpeg": 6,
+    ".bmp": 7,
 }
 
 # Image hosts the generated page is allowed to reference. Everything the API
