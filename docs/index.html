@@ -12,9 +12,17 @@
       --panel-hi: #1c242e;
       --text: #d5dce3;
       --muted: #7d8894;
+      /* The accent hue is rolled on every visit (see the script below); only
+         its hue moves. Lightness and chroma are pinned in oklch, which is
+         perceptually uniform, so every hue lands at the same apparent
+         brightness — measured, the worst hue still clears 8:1 against this
+         background and the card panel. The hex above it is what browsers
+         without oklch keep, and the fallback hue applies without scripting. */
       --accent: #6cb6ff;
+      --accent: oklch(0.8 0.14 var(--ha, 250));
       --line: #262e38;
       --shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+      --dot: rgba(220, 235, 255, 0.05);
     }
     @media (prefers-color-scheme: light) {
       :root {
@@ -23,9 +31,12 @@
         --panel-hi: #f2f5f8;
         --text: #22282f;
         --muted: #5c6672;
+        /* Same hue, taken darker: on white, worst case still clears 5:1. */
         --accent: #0a58b8;
+        --accent: oklch(0.48 0.16 var(--ha, 250));
         --line: #dde3ea;
         --shadow: 0 1px 2px rgba(16, 22, 30, 0.08);
+        --dot: rgba(16, 22, 30, 0.07);
       }
     }
     * { box-sizing: border-box; }
@@ -36,8 +47,13 @@
       margin: 0 auto;
       padding: 3rem 1.25rem 4rem;
       line-height: 1.65;
-      background: var(--bg);
       color: var(--text);
+      /* Graph-paper dots behind everything: texture at a glance, invisible
+         once you start reading. Fixed, so scrolling slides the page over it. */
+      background:
+        radial-gradient(circle at 1px 1px, var(--dot) 1px, transparent 0)
+          0 0 / 26px 26px fixed,
+        var(--bg);
     }
     a { color: var(--accent); text-decoration: none; }
     a:hover { text-decoration: underline; }
@@ -53,6 +69,19 @@
       flex: none;
     }
     h1 { margin: 0; font-size: 1.35rem; font-weight: 600; letter-spacing: -0.01em; }
+    /* A terminal caret parked after the name. Drawn as a box rather than a
+       glyph so it does not depend on the font that ends up being used. */
+    h1::after {
+      content: "";
+      display: inline-block;
+      width: 0.5em;
+      height: 1.05em;
+      margin-left: 0.32rem;
+      vertical-align: -0.16em;
+      background: var(--accent);
+      animation: caret 1.15s steps(1, end) infinite;
+    }
+    @keyframes caret { 0%, 55% { opacity: 1; } 55.01%, 100% { opacity: 0; } }
     .tagline { margin: 0.15rem 0 0; color: var(--text); }
     .profile { margin: 0.15rem 0 0; color: var(--muted); font-size: 0.85rem; }
 
@@ -88,19 +117,32 @@
       overflow: hidden;
       box-shadow: var(--shadow);
       transition: border-color 0.15s ease, transform 0.15s ease;
+      /* Cards deal themselves in on load, one after the next. The delay is
+         capped so a long list does not keep the reader waiting. */
+      animation: deal 0.45s cubic-bezier(0.2, 0.7, 0.3, 1) backwards;
+      animation-delay: calc(min(var(--i), 11) * 55ms);
+    }
+    @keyframes deal {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: none; }
     }
     .card:hover { border-color: var(--accent); transform: translateY(-2px); }
+    /* The preview leans in a little under the cursor; the card clips it. */
+    .card:hover .shot img, .card:hover .tile { transform: scale(1.035); }
     @media (prefers-reduced-motion: reduce) {
-      .card, .card:hover { transition: none; transform: none; }
+      .card, .card:hover { transition: none; transform: none; animation: none; }
+      .card:hover .shot img, .card:hover .tile { transform: none; }
+      h1::after { animation: none; }
     }
 
-    .shot { display: block; background: var(--panel-hi); }
+    .shot { display: block; background: var(--panel-hi); overflow: hidden; }
     .shot img {
       display: block;
       width: 100%;
       aspect-ratio: 16 / 9;
       object-fit: cover;
       border-bottom: 1px solid var(--line);
+      transition: transform 0.3s ease;
     }
     .tile {
       display: flex;
@@ -108,6 +150,7 @@
       justify-content: center;
       aspect-ratio: 16 / 9;
       border-bottom: 1px solid var(--line);
+      transition: transform 0.3s ease;
       background:
         repeating-linear-gradient(
           -45deg,
@@ -155,6 +198,10 @@
     footer p { margin: 0; }
     footer .built::before { content: "// "; }
   </style>
+  <!-- The page's one line of script: roll the accent hue for this visit. It
+       runs before the first paint so the colour never visibly changes, and
+       with scripting off the stylesheet's fallback hue stands. -->
+  <script>document.documentElement.style.setProperty("--ha", Math.floor(Math.random() * 360));</script>
 </head>
 <body>
   <header class="intro">
@@ -168,23 +215,7 @@
   <main>
     <h2 class="section">works (10)</h2>
     <div class="grid">
-      <article class="card">
-        <a class="shot" href="https://sabas0ba.github.io/deco/"><img src="previews/deco.png" alt="preview of deco" loading="lazy" decoding="async"></a>
-        <div class="body">
-          <h3><a href="https://sabas0ba.github.io/deco/">deco</a></h3>
-          <p class="desc">A lightweight, VS Code-compatible text editor written in Rust. No Electron.</p>
-          <p class="meta"><a href="https://sabas0ba.github.io/deco/">live</a><span class="sep" aria-hidden="true">·</span><a href="https://github.com/sabas0ba/deco">source</a><span class="date">2026-08-11</span></p>
-        </div>
-      </article>
-      <article class="card">
-        <a class="shot" href="https://sabas0ba.github.io/dowel/"><img src="previews/dowel.png" alt="preview of dowel" loading="lazy" decoding="async"></a>
-        <div class="body">
-          <h3><a href="https://sabas0ba.github.io/dowel/">dowel</a></h3>
-          <p class="desc">A build system for C and C++ with incremental manifest evaluation and typed values that carry provenance</p>
-          <p class="meta"><a href="https://sabas0ba.github.io/dowel/">live</a><span class="sep" aria-hidden="true">·</span><a href="https://github.com/sabas0ba/dowel">source</a><span class="date">2026-08-11</span></p>
-        </div>
-      </article>
-      <article class="card">
+      <article class="card" style="--i: 0">
         <a class="shot" href="https://sabas0ba.github.io/stone/"><img src="previews/stone.png" alt="preview of stone" loading="lazy" decoding="async"></a>
         <div class="body">
           <h3><a href="https://sabas0ba.github.io/stone/">stone</a></h3>
@@ -192,7 +223,23 @@
           <p class="meta"><a href="https://sabas0ba.github.io/stone/">live</a><span class="sep" aria-hidden="true">·</span><a href="https://github.com/sabas0ba/stone">source</a><span class="date">2026-08-11</span></p>
         </div>
       </article>
-      <article class="card">
+      <article class="card" style="--i: 1">
+        <a class="shot" href="https://sabas0ba.github.io/dowel/"><img src="previews/dowel.png" alt="preview of dowel" loading="lazy" decoding="async"></a>
+        <div class="body">
+          <h3><a href="https://sabas0ba.github.io/dowel/">dowel</a></h3>
+          <p class="desc">A build system for C and C++ with incremental manifest evaluation and typed values that carry provenance</p>
+          <p class="meta"><a href="https://sabas0ba.github.io/dowel/">live</a><span class="sep" aria-hidden="true">·</span><a href="https://github.com/sabas0ba/dowel">source</a><span class="date">2026-08-11</span></p>
+        </div>
+      </article>
+      <article class="card" style="--i: 2">
+        <a class="shot" href="https://sabas0ba.github.io/deco/"><img src="previews/deco.png" alt="preview of deco" loading="lazy" decoding="async"></a>
+        <div class="body">
+          <h3><a href="https://sabas0ba.github.io/deco/">deco</a></h3>
+          <p class="desc">A lightweight, VS Code-compatible text editor written in Rust. No Electron.</p>
+          <p class="meta"><a href="https://sabas0ba.github.io/deco/">live</a><span class="sep" aria-hidden="true">·</span><a href="https://github.com/sabas0ba/deco">source</a><span class="date">2026-08-11</span></p>
+        </div>
+      </article>
+      <article class="card" style="--i: 3">
         <a class="shot" href="https://sabas0ba.github.io/dowel_examples/"><img src="previews/dowel_examples.png" alt="preview of dowel_examples" loading="lazy" decoding="async"></a>
         <div class="body">
           <h3><a href="https://sabas0ba.github.io/dowel_examples/">dowel_examples</a></h3>
@@ -200,7 +247,7 @@
           <p class="meta"><a href="https://sabas0ba.github.io/dowel_examples/">live</a><span class="sep" aria-hidden="true">·</span><a href="https://github.com/sabas0ba/dowel_examples">source</a><span class="date">2026-08-11</span></p>
         </div>
       </article>
-      <article class="card">
+      <article class="card" style="--i: 4">
         <a class="shot" href="https://sabas0ba.github.io/hoshizora/"><img src="previews/hoshizora.png" alt="preview of hoshizora" loading="lazy" decoding="async"></a>
         <div class="body">
           <h3><a href="https://sabas0ba.github.io/hoshizora/">hoshizora</a></h3>
@@ -208,7 +255,7 @@
           <p class="meta"><a href="https://sabas0ba.github.io/hoshizora/">live</a><span class="sep" aria-hidden="true">·</span><a href="https://github.com/sabas0ba/hoshizora">source</a><span class="date">2026-08-11</span></p>
         </div>
       </article>
-      <article class="card">
+      <article class="card" style="--i: 5">
         <a class="shot" href="https://sabas0ba.github.io/kicad_skills/"><img src="previews/kicad_skills.png" alt="preview of kicad_skills" loading="lazy" decoding="async"></a>
         <div class="body">
           <h3><a href="https://sabas0ba.github.io/kicad_skills/">kicad_skills</a></h3>
@@ -216,7 +263,7 @@
           <p class="meta"><a href="https://sabas0ba.github.io/kicad_skills/">live</a><span class="sep" aria-hidden="true">·</span><a href="https://github.com/sabas0ba/kicad_skills">source</a><span class="date">2026-08-10</span></p>
         </div>
       </article>
-      <article class="card">
+      <article class="card" style="--i: 6">
         <a class="shot" href="https://sabas0ba.github.io/rv32mbt/"><img src="previews/rv32mbt.png" alt="preview of rv32mbt" loading="lazy" decoding="async"></a>
         <div class="body">
           <h3><a href="https://sabas0ba.github.io/rv32mbt/">rv32mbt</a></h3>
@@ -224,7 +271,7 @@
           <p class="meta"><a href="https://sabas0ba.github.io/rv32mbt/">live</a><span class="sep" aria-hidden="true">·</span><a href="https://github.com/sabas0ba/rv32mbt">source</a><span class="date">2026-07-30</span></p>
         </div>
       </article>
-      <article class="card">
+      <article class="card" style="--i: 7">
         <a class="shot" href="https://sabas0ba.github.io/hello_veryl/"><img src="previews/hello_veryl.png" alt="preview of hello_veryl" loading="lazy" decoding="async"></a>
         <div class="body">
           <h3><a href="https://sabas0ba.github.io/hello_veryl/">hello_veryl</a></h3>
@@ -232,7 +279,7 @@
           <p class="meta"><a href="https://sabas0ba.github.io/hello_veryl/">live</a><span class="sep" aria-hidden="true">·</span><a href="https://github.com/sabas0ba/hello_veryl">source</a><span class="date">2026-07-23</span></p>
         </div>
       </article>
-      <article class="card">
+      <article class="card" style="--i: 8">
         <a class="shot" href="https://sabas0ba.github.io/font8x16-workbench/"><img src="previews/font8x16-workbench.png" alt="preview of font8x16-workbench" loading="lazy" decoding="async"></a>
         <div class="body">
           <h3><a href="https://sabas0ba.github.io/font8x16-workbench/">font8x16-workbench</a></h3>
@@ -240,7 +287,7 @@
           <p class="meta"><a href="https://sabas0ba.github.io/font8x16-workbench/">live</a><span class="sep" aria-hidden="true">·</span><a href="https://github.com/sabas0ba/font8x16-workbench">source</a><span class="date">2026-07-21</span></p>
         </div>
       </article>
-      <article class="card">
+      <article class="card" style="--i: 9">
         <a class="shot" href="https://sabas0ba.github.io/retrix/"><img src="previews/retrix.png" alt="preview of retrix" loading="lazy" decoding="async"></a>
         <div class="body">
           <h3><a href="https://sabas0ba.github.io/retrix/">retrix</a></h3>
@@ -252,7 +299,7 @@
   </main>
   <footer>
     <p class="copyright">© 2026 sabas0ba</p>
-    <p class="built">generated at 2026-08-11 04:52 UTC</p>
+    <p class="built">generated at 2026-08-11 06:00 UTC</p>
   </footer>
 </body>
 </html>

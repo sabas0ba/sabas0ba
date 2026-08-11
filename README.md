@@ -3,12 +3,12 @@
 mochimochi engineer. here are my hobby works:
 
 <!-- INDEX:START -->
-- **[deco](https://github.com/sabas0ba/deco)** · [pages](https://sabas0ba.github.io/deco/) · <sub>2026-08-11</sub><br>
-  A lightweight, VS Code-compatible text editor written in Rust. No Electron.
-- **[dowel](https://github.com/sabas0ba/dowel)** · [pages](https://sabas0ba.github.io/dowel/) · <sub>2026-08-11</sub><br>
-  A build system for C and C++ with incremental manifest evaluation and typed values that carry provenance
 - **[stone](https://github.com/sabas0ba/stone)** · [pages](https://sabas0ba.github.io/stone/) · <sub>2026-08-11</sub><br>
   Compiler bootstrap from hand-encoded RV32 binary on QEMU
+- **[dowel](https://github.com/sabas0ba/dowel)** · [pages](https://sabas0ba.github.io/dowel/) · <sub>2026-08-11</sub><br>
+  A build system for C and C++ with incremental manifest evaluation and typed values that carry provenance
+- **[deco](https://github.com/sabas0ba/deco)** · [pages](https://sabas0ba.github.io/deco/) · <sub>2026-08-11</sub><br>
+  A lightweight, VS Code-compatible text editor written in Rust. No Electron.
 - **[dowel_examples](https://github.com/sabas0ba/dowel_examples)** · [pages](https://sabas0ba.github.io/dowel_examples/) · <sub>2026-08-11</sub><br>
   examples for sabas0ba/dowel
 - **[hoshizora](https://github.com/sabas0ba/hoshizora)** · [pages](https://sabas0ba.github.io/hoshizora/) · <sub>2026-08-11</sub><br>

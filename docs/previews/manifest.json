@@ -2,12 +2,12 @@
   "deco": {
     "file": "deco.png",
     "source": "screenshot",
-    "updated_at": "2026-08-11T03:21:06Z"
+    "updated_at": "2026-08-11T05:14:12Z"
   },
   "dowel": {
     "file": "dowel.png",
     "source": "screenshot",
-    "updated_at": "2026-08-11T03:19:43Z"
+    "updated_at": "2026-08-11T05:20:22Z"
   },
   "dowel_examples": {
     "file": "dowel_examples.png",
@@ -47,6 +47,6 @@
   "stone": {
     "file": "stone.png",
     "source": "screenshot",
-    "updated_at": "2026-08-11T02:44:33Z"
+    "updated_at": "2026-08-11T05:21:25Z"
   }
 }
