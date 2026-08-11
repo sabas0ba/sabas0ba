@@ -7,8 +7,12 @@ last update (newest first), and renders the result into two outputs:
 
 - a marker-delimited section inside ``README.md`` (for the profile page)
 - a static ``docs/index.html`` portfolio page (for GitHub Pages), with the
-  owner's avatar, a short profile line, and one card per project showing an
-  animated preview (GIF/APNG/WebP) when the repository ships one
+  owner's avatar, a short profile line, and one card per project
+
+A card's image is, in order of preference: a preview file shipped by the
+project repository (``docs/preview.gif`` and friends), an image captured from
+the project's published page by ``capture_previews``, or a monogram tile drawn
+by the page itself.
 
 Only the Python standard library is used. Network access is confined to the
 ``fetch_*`` helpers; all formatting logic is pure and unit-testable.
@@ -20,6 +24,7 @@ import argparse
 import html
 import json
 import os
+import posixpath
 import sys
 import urllib.error
 import urllib.parse
@@ -31,6 +36,8 @@ from pathlib import Path
 from string import Template
 from typing import Iterable, Optional, Sequence
 
+import capture_previews
+
 API_ROOT = "https://api.github.com"
 USER_AGENT = "sabas0ba-index-builder"
 PER_PAGE = 100
@@ -38,6 +45,10 @@ MAX_PAGES = 20  # hard cap: 20 * 100 = 2000 repos; prevents unbounded paging
 
 README_START = "<!-- INDEX:START -->"
 README_END = "<!-- INDEX:END -->"
+
+# Where images captured from the projects' own pages are stored, relative to
+# the generated HTML page.
+DEFAULT_PREVIEW_DIR = "previews"
 
 # Directories probed (in order) for a project preview, and the file stems that
 # count as one. The first directory that yields a usable image wins, so a
@@ -632,6 +643,13 @@ def attach_previews(
     ]
 
 
+def _relative_prefix(directory: Path, page_dir: Path) -> str:
+    """Return ``directory`` as a URL path relative to the generated page."""
+    return posixpath.normpath(
+        os.path.relpath(directory, page_dir).replace(os.sep, "/")
+    )
+
+
 # --------------------------------------------------------------------------- #
 # Orchestration
 # --------------------------------------------------------------------------- #
@@ -644,13 +662,32 @@ def build(
     now: Optional[datetime] = None,
     tagline: str = "",
     previews: bool = True,
+    capture: bool = True,
+    preview_dir: Optional[Path] = None,
+    browser: Optional[str] = None,
+    refresh: bool = False,
 ) -> list[Repo]:
-    """Fetch, transform, and write both outputs. Returns the sorted repo list."""
+    """Fetch, transform, and write both outputs. Returns the sorted repo list.
+
+    Card images come from three places, in order: a preview file shipped by the
+    project repository, an image captured from its published page (see
+    ``capture_previews``), and finally the monogram tile drawn by the page
+    itself.
+    """
     generated_at = (now or datetime.now(timezone.utc)).strftime("%Y-%m-%d %H:%M UTC")
     raw = fetch_repositories(user, token=token)
     repos = sort_repositories(parse_repositories(raw))
     if previews:
         repos = attach_previews(user, repos, token=token)
+    if capture:
+        directory = preview_dir or html_path.parent / DEFAULT_PREVIEW_DIR
+        repos = capture_previews.capture(
+            repos,
+            directory,
+            browser=browser,
+            refresh=refresh,
+            url_prefix=_relative_prefix(directory, html_path.parent),
+        )
     profile = fetch_profile(user, token=token)
 
     readme = readme_path.read_text(encoding="utf-8")
@@ -699,6 +736,27 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         action="store_true",
         help="Skip the per-repository preview-image lookup (one API call per repo)",
     )
+    parser.add_argument(
+        "--no-capture",
+        action="store_true",
+        help="Do not capture card images from the projects' published pages",
+    )
+    parser.add_argument(
+        "--preview-dir",
+        type=Path,
+        default=None,
+        help="Directory for captured card images (default: <html dir>/previews)",
+    )
+    parser.add_argument(
+        "--browser",
+        default=None,
+        help="Chrome/Chromium executable used for screenshots (default: autodetect)",
+    )
+    parser.add_argument(
+        "--refresh",
+        action="store_true",
+        help="Re-capture every card image, ignoring the manifest's freshness check",
+    )
     args = parser.parse_args(argv)
 
     try:
@@ -709,6 +767,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             token=args.token,
             tagline=args.tagline,
             previews=not args.no_previews,
+            capture=not args.no_capture,
+            preview_dir=args.preview_dir,
+            browser=args.browser,
+            refresh=args.refresh,
         )
     except (urllib.error.URLError, ValueError, OSError) as exc:
         print(f"error: {exc}", file=sys.stderr)
