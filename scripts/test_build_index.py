@@ -230,6 +230,23 @@ class SelectPreviewTest(unittest.TestCase):
         entries = [make_entry("preview.png"), make_entry("demo.gif")]
         self.assertTrue(bi.select_preview(entries).endswith("demo.gif"))
 
+    def test_accepts_every_format_a_card_can_show(self):
+        for extension in (".gif", ".apng", ".svg", ".webp", ".avif",
+                          ".png", ".jpg", ".jpeg", ".bmp"):
+            with self.subTest(extension=extension):
+                entries = [make_entry(f"preview{extension}")]
+                self.assertTrue(bi.select_preview(entries).endswith(extension))
+
+    def test_ranks_what_moves_over_what_does_not(self):
+        ranks = bi.PREVIEW_EXTENSIONS
+        self.assertLess(ranks[".gif"], ranks[".svg"])
+        self.assertLess(ranks[".svg"], ranks[".png"])
+        self.assertLess(ranks[".png"], ranks[".bmp"])
+        # a project shipping several: the one that can move wins
+        entries = [make_entry("preview.bmp"), make_entry("preview.svg"),
+                   make_entry("preview.png")]
+        self.assertTrue(bi.select_preview(entries).endswith("preview.svg"))
+
     def test_prefers_earlier_stem_at_equal_format(self):
         entries = [make_entry("screenshot.png"), make_entry("preview.png")]
         self.assertTrue(bi.select_preview(entries).endswith("preview.png"))
