@@ -3,6 +3,8 @@
 mochimochi engineer. here are my hobby works:
 
 <!-- INDEX:START -->
+- **[sabas0ba](https://github.com/sabas0ba/sabas0ba)** · [pages](https://sabas0ba.github.io/sabas0ba/) · <sub>2026-08-11</sub><br>
+  my profile
 - **[deco](https://github.com/sabas0ba/deco)** · [pages](https://sabas0ba.github.io/deco/) · <sub>2026-08-11</sub><br>
   A lightweight, VS Code-compatible text editor written in Rust. No Electron.
 - **[dowel](https://github.com/sabas0ba/dowel)** · [pages](https://sabas0ba.github.io/dowel/) · <sub>2026-08-11</sub><br>
