@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
-"""Generate an index of public repositories that publish a homepage (GitHub Pages).
+"""Generate a portfolio of public repositories that publish a homepage (GitHub Pages).
 
 The script collects public repositories for a given GitHub user via the REST API,
 keeps only those whose ``homepage`` field holds a non-empty URL, sorts them by
 last update (newest first), and renders the result into two outputs:
 
 - a marker-delimited section inside ``README.md`` (for the profile page)
-- a static ``docs/index.html`` page (for GitHub Pages)
+- a static ``docs/index.html`` portfolio page (for GitHub Pages), with the
+  owner's avatar, a short profile line, and one card per project showing an
+  animated preview (GIF/APNG/WebP) when the repository ships one
 
-Only the Python standard library is used. Network access is confined to
-``fetch_repositories``; all formatting logic is pure and unit-testable.
+Only the Python standard library is used. Network access is confined to the
+``fetch_*`` helpers; all formatting logic is pure and unit-testable.
 """
 
 from __future__ import annotations
@@ -22,7 +24,8 @@ import sys
 import urllib.error
 import urllib.parse
 import urllib.request
-from dataclasses import dataclass
+import zlib
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from pathlib import Path
 from string import Template
@@ -36,6 +39,29 @@ MAX_PAGES = 20  # hard cap: 20 * 100 = 2000 repos; prevents unbounded paging
 README_START = "<!-- INDEX:START -->"
 README_END = "<!-- INDEX:END -->"
 
+# Directories probed (in order) for a project preview, and the file stems that
+# count as one. The first directory that yields a usable image wins, so a
+# repository can override a generic asset by putting one under docs/.
+PREVIEW_DIRS = ("docs", "docs/assets", "assets", ".github", "")
+PREVIEW_STEMS = ("preview", "demo", "screenshot", "hero", "banner")
+
+# Lower rank = preferred. Animated formats come first: a moving demo says more
+# about a web app than a still frame does.
+PREVIEW_EXTENSIONS = {
+    ".gif": 0,
+    ".apng": 1,
+    ".webp": 2,  # may be animated; still frames are fine too
+    ".avif": 3,
+    ".png": 4,
+    ".jpg": 5,
+    ".jpeg": 5,
+}
+
+# Image hosts the generated page is allowed to reference. Everything the API
+# hands back for repository contents and avatars lives under this domain;
+# anything else is third-party content and gets dropped.
+MEDIA_HOST_SUFFIX = ".githubusercontent.com"
+
 
 @dataclass(frozen=True)
 class Repo:
@@ -46,6 +72,7 @@ class Repo:
     homepage: str
     updated_at: str  # ISO 8601 string as returned by the API
     html_url: str = ""  # repository page on github.com
+    preview_url: str = ""  # image/animation shown on the portfolio card
 
     @property
     def updated_date(self) -> str:
@@ -55,6 +82,24 @@ class Repo:
         except (ValueError, AttributeError):
             return ""
         return dt.astimezone(timezone.utc).strftime("%Y-%m-%d")
+
+
+@dataclass(frozen=True)
+class Profile:
+    """The account the portfolio belongs to."""
+
+    login: str
+    name: str = ""
+    avatar_url: str = ""
+    bio: str = ""
+
+    @property
+    def display_name(self) -> str:
+        return self.name or self.login
+
+    @property
+    def html_url(self) -> str:
+        return f"https://github.com/{self.login}" if self.login else ""
 
 
 # --------------------------------------------------------------------------- #
@@ -99,17 +144,71 @@ def sort_repositories(repos: Iterable[Repo]) -> list[Repo]:
     return sorted(repos, key=lambda r: r.updated_at, reverse=True)
 
 
+def is_media_url(url: str) -> bool:
+    """Return True for https URLs served by GitHub's own asset domain.
+
+    The generated page embeds these as <img> sources, so anything outside
+    GitHub's CDN — or any non-https scheme — is refused rather than trusted.
+    """
+    parsed = urllib.parse.urlparse(url)
+    if parsed.scheme.lower() != "https":
+        return False
+    host = (parsed.hostname or "").lower()
+    return host.endswith(MEDIA_HOST_SUFFIX)
+
+
+def select_preview(entries: Sequence[dict]) -> str:
+    """Pick the best preview image from one directory listing of the contents API.
+
+    Files are matched by stem (``preview``, ``demo``, … optionally followed by
+    ``-``/``_`` and a suffix such as ``preview-dark.gif``) and ranked by format,
+    animated first. Returns the download URL, or '' when nothing matches.
+    """
+    best: Optional[tuple[tuple, str]] = None
+    for entry in entries:
+        if entry.get("type") != "file":
+            continue
+        filename = (entry.get("name") or "").strip()
+        stem, dot, extension = filename.rpartition(".")
+        if not dot:
+            continue
+        rank = PREVIEW_EXTENSIONS.get("." + extension.lower())
+        if rank is None:
+            continue
+        stem = stem.lower()
+        stem_rank = next(
+            (
+                i
+                for i, candidate in enumerate(PREVIEW_STEMS)
+                if stem == candidate or stem.startswith((candidate + "-", candidate + "_"))
+            ),
+            None,
+        )
+        if stem_rank is None:
+            continue
+        url = (entry.get("download_url") or "").strip()
+        if not is_media_url(url):
+            continue
+        key = (rank, stem_rank, filename.lower())
+        if best is None or key < best[0]:
+            best = (key, url)
+    return best[1] if best else ""
+
+
+def parse_profile(payload: dict, login: str) -> Profile:
+    """Build a Profile from the ``/users/{login}`` payload, tolerating gaps."""
+    avatar = (payload.get("avatar_url") or "").strip()
+    return Profile(
+        login=(payload.get("login") or login or "").strip(),
+        name=(payload.get("name") or "").strip(),
+        avatar_url=avatar if is_media_url(avatar) else "",
+        bio=" ".join((payload.get("bio") or "").split()),
+    )
+
+
 def _md_text(text: str) -> str:
     """Collapse whitespace so a value cannot break the list-item structure."""
     return " ".join(text.split())
-
-
-def _display_url(url: str) -> str:
-    """Return a URL without its scheme prefix, for use as link text."""
-    for prefix in ("https://", "http://"):
-        if url.lower().startswith(prefix):
-            return url[len(prefix):]
-    return url
 
 
 def render_markdown(repos: Sequence[Repo]) -> str:
@@ -157,69 +256,179 @@ def replace_readme_section(readme: str, section: str) -> str:
     return f"{before}\n{section}\n{after}"
 
 
-# No external resources (fonts, CSS, JS) are referenced: the page must stay
-# self-contained so publishing it adds no third-party dependencies.
+# No external CSS, JS or fonts are referenced: the page stays self-contained so
+# publishing it adds no third-party dependencies. The only remote resources are
+# images (avatar, project previews), and those are restricted to GitHub's own
+# asset domain by ``is_media_url``. Projects without a preview file fall back to
+# a locally drawn monogram tile, so the grid never depends on a remote image.
 PAGE_TEMPLATE = Template("""\
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
   <title>$title</title>
   <style>
     :root {
-      --bg: #101418;
-      --text: #c9d1d9;
-      --muted: #6a737d;
+      --bg: #0d1117;
+      --panel: #151b23;
+      --panel-hi: #1c242e;
+      --text: #d5dce3;
+      --muted: #7d8894;
       --accent: #6cb6ff;
-      --line: #2a3138;
+      --line: #262e38;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #fbfcfd;
+        --panel: #ffffff;
+        --panel-hi: #f2f5f8;
+        --text: #22282f;
+        --muted: #5c6672;
+        --accent: #0a58b8;
+        --line: #dde3ea;
+        --shadow: 0 1px 2px rgba(16, 22, 30, 0.08);
+      }
     }
     * { box-sizing: border-box; }
     body {
       font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
       font-size: 0.92rem;
-      max-width: 56rem;
+      max-width: 62rem;
       margin: 0 auto;
-      padding: 2.5rem 1.25rem;
-      line-height: 1.7;
+      padding: 3rem 1.25rem 4rem;
+      line-height: 1.65;
       background: var(--bg);
       color: var(--text);
     }
-    h1 { margin: 0; font-size: 1.05rem; font-weight: 600; color: var(--accent); }
-    h1::before { content: "$$ "; color: var(--muted); }
-    .tagline { margin: 0.2rem 0 0; color: var(--muted); }
-    .tagline::before { content: "# "; }
     a { color: var(--accent); text-decoration: none; }
     a:hover { text-decoration: underline; }
-    .profile { margin: 0.2rem 0 0; color: var(--muted); }
-    .tablewrap { margin-top: 2rem; overflow-x: auto; border-top: 1px solid var(--line); }
-    table { border-collapse: collapse; width: 100%; }
-    th, td {
-      text-align: left;
-      padding: 0.55rem 1.2rem 0.55rem 0;
-      border-bottom: 1px solid var(--line);
-      vertical-align: top;
+
+    .intro { display: flex; align-items: center; gap: 1.25rem; flex-wrap: wrap; }
+    .avatar {
+      width: 5.5rem;
+      height: 5.5rem;
+      border-radius: 50%;
+      background: var(--panel-hi);
+      border: 1px solid var(--line);
+      object-fit: cover;
+      flex: none;
     }
-    th { color: var(--muted); font-weight: 400; }
-    .date { color: var(--muted); white-space: nowrap; }
-    footer { margin-top: 1.6rem; color: var(--muted); }
+    h1 { margin: 0; font-size: 1.35rem; font-weight: 600; letter-spacing: -0.01em; }
+    .tagline { margin: 0.15rem 0 0; color: var(--text); }
+    .profile { margin: 0.15rem 0 0; color: var(--muted); font-size: 0.85rem; }
+
+    .section {
+      display: flex;
+      align-items: baseline;
+      gap: 0.6rem;
+      margin: 2.75rem 0 1rem;
+      font-size: 0.8rem;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .section::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: var(--line);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+      gap: 1.1rem;
+    }
+    .card {
+      display: flex;
+      flex-direction: column;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 0.6rem;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      transition: border-color 0.15s ease, transform 0.15s ease;
+    }
+    .card:hover { border-color: var(--accent); transform: translateY(-2px); }
+    @media (prefers-reduced-motion: reduce) {
+      .card, .card:hover { transition: none; transform: none; }
+    }
+
+    .shot { display: block; background: var(--panel-hi); }
+    .shot img {
+      display: block;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+      border-bottom: 1px solid var(--line);
+    }
+    .tile {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      aspect-ratio: 16 / 9;
+      border-bottom: 1px solid var(--line);
+      background:
+        repeating-linear-gradient(
+          -45deg,
+          rgba(127, 127, 127, 0.08) 0 1px,
+          transparent 1px 9px
+        ),
+        linear-gradient(140deg,
+          hsl(var(--h) 52% 30%),
+          hsl(calc(var(--h) + 38) 46% 17%));
+      color: #f2f6fa;
+    }
+    @media (prefers-color-scheme: light) {
+      .tile {
+        background:
+          repeating-linear-gradient(
+            -45deg,
+            rgba(255, 255, 255, 0.35) 0 1px,
+            transparent 1px 9px
+          ),
+          linear-gradient(140deg,
+            hsl(var(--h) 62% 78%),
+            hsl(calc(var(--h) + 38) 52% 62%));
+        color: #16202b;
+      }
+    }
+    .tile span { font-size: 1.9rem; font-weight: 600; letter-spacing: -0.03em; opacity: 0.9; }
+
+    .body { display: flex; flex-direction: column; gap: 0.4rem; padding: 0.9rem 1rem 1rem; flex: 1; }
+    .body h3 { margin: 0; font-size: 0.98rem; font-weight: 600; }
+    .desc { margin: 0; color: var(--muted); font-size: 0.85rem; line-height: 1.55; }
+    .meta {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin: auto 0 0;  /* auto top margin keeps footers flush across a row */
+      padding-top: 0.6rem;
+      border-top: 1px solid var(--line);
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    .meta .sep { opacity: 0.55; }
+    .meta .date { margin-left: auto; white-space: nowrap; }
+
+    footer { margin-top: 2.5rem; color: var(--muted); font-size: 0.78rem; }
     footer::before { content: "// "; }
   </style>
 </head>
 <body>
-  <header>
-    <h1>$heading</h1>
-$tagline_html$profile_html  </header>
+  <header class="intro">
+$avatar_html    <div>
+      <h1>$heading</h1>
+$tagline_html$profile_html    </div>
+  </header>
   <main>
-    <div class="tablewrap">
-      <table>
-        <thead>
-          <tr><th>repository</th><th>pages</th><th>description</th><th>updated</th></tr>
-        </thead>
-        <tbody>
+    <h2 class="section">$section_label</h2>
+    <div class="grid">
 $body
-        </tbody>
-      </table>
     </div>
   </main>
   <footer>generated at $generated_at</footer>
@@ -227,54 +436,101 @@ $body
 </html>
 """)
 
+EMPTY_STATE = (
+    '      <p class="desc">No published repositories found.</p>'
+)
+
+
+def _monogram(name: str) -> str:
+    """Return up to two leading alphanumeric characters of a project name."""
+    letters = [c for c in name.lower() if c.isalnum()]
+    return "".join(letters[:2]) or "?"
+
+
+def _hue(name: str) -> int:
+    """Map a project name to a stable hue, so a card keeps its colour over time."""
+    return zlib.crc32(name.encode("utf-8")) % 360
+
+
+def _render_thumb(repo: Repo) -> str:
+    """Render the card's visual: the repository's preview media, or a monogram tile."""
+    name = html.escape(repo.name)
+    if repo.preview_url:
+        return (
+            f'<img src="{html.escape(repo.preview_url, quote=True)}" '
+            f'alt="preview of {name}" loading="lazy" decoding="async">'
+        )
+    return (
+        f'<span class="tile" style="--h: {_hue(repo.name)}" aria-hidden="true">'
+        f"<span>{html.escape(_monogram(repo.name))}</span></span>"
+    )
+
+
+def _render_card(repo: Repo) -> str:
+    """Render one project card: preview, name, description, links and date."""
+    name = html.escape(repo.name)
+    pages_href = html.escape(repo.homepage, quote=True)
+    lines = [
+        '      <article class="card">',
+        f'        <a class="shot" href="{pages_href}">{_render_thumb(repo)}</a>',
+        '        <div class="body">',
+        f'          <h3><a href="{pages_href}">{name}</a></h3>',
+    ]
+    if repo.description:
+        lines.append(f'          <p class="desc">{html.escape(repo.description)}</p>')
+    meta = [f'<a href="{pages_href}">live</a>']
+    if repo.html_url:
+        meta.append('<span class="sep" aria-hidden="true">·</span>')
+        meta.append(f'<a href="{html.escape(repo.html_url, quote=True)}">source</a>')
+    if repo.updated_date:
+        meta.append(f'<span class="date">{html.escape(repo.updated_date)}</span>')
+    lines.append(f'          <p class="meta">{"".join(meta)}</p>')
+    lines.append("        </div>")
+    lines.append("      </article>")
+    return "\n".join(lines)
+
 
 def render_html(
     repos: Sequence[Repo],
     generated_at: str,
     owner: str = "",
     tagline: str = "",
+    profile: Optional[Profile] = None,
 ) -> str:
-    """Render the repository list as a standalone HTML document.
+    """Render the projects as a standalone portfolio page.
 
     ``owner`` names the page heading and adds a link to the GitHub profile;
-    ``tagline`` adds an optional subtitle line. All dynamic values are
-    HTML-escaped. No external resources are referenced.
+    ``tagline`` is the one-line self-description shown under it, defaulting to
+    the account's bio; ``profile`` supplies the avatar (and a display name, when
+    the account sets one). All dynamic values are HTML-escaped.
     """
-    rows: list[str] = []
-    for r in repos:
-        name = html.escape(r.name)
-        repo_href = html.escape(r.html_url, quote=True)
-        pages_href = html.escape(r.homepage, quote=True)
-        pages_text = html.escape(_display_url(r.homepage))
-        desc = html.escape(r.description)
-        date = html.escape(r.updated_date)
-        repo_cell = f'<a href="{repo_href}">{name}</a>' if r.html_url else name
-        rows.append(
-            f"          <tr><td>{repo_cell}</td>"
-            f'<td><a href="{pages_href}">{pages_text}</a></td>'
-            f"<td>{desc}</td>"
-            f'<td class="date">{date}</td></tr>'
-        )
-    body = (
-        "\n".join(rows)
-        if rows
-        else '          <tr><td colspan="4">No published repositories found.</td></tr>'
+    body = "\n".join(_render_card(r) for r in repos) if repos else EMPTY_STATE
+    heading = html.escape((profile.display_name if profile else "") or owner)
+    profile_href = html.escape(
+        (profile.html_url if profile else "") or f"https://github.com/{owner}",
+        quote=True,
     )
-    owner_esc = html.escape(owner)
-    tagline_esc = html.escape(tagline)
-    profile_href = html.escape(f"https://github.com/{owner}", quote=True)
+    avatar = profile.avatar_url if profile else ""
+    tagline = tagline or (profile.bio if profile else "")
     return PAGE_TEMPLATE.substitute(
-        title=owner_esc or "Published Repositories",
-        heading=owner_esc or "Published Repositories",
+        title=heading or "Published Repositories",
+        heading=heading or "Published Repositories",
+        avatar_html=(
+            f'    <img class="avatar" src="{html.escape(avatar, quote=True)}" '
+            f'alt="{heading}" width="88" height="88">\n'
+            if avatar
+            else ""
+        ),
         tagline_html=(
-            f'    <p class="tagline">{tagline_esc}</p>\n' if tagline else ""
+            f'      <p class="tagline">{html.escape(tagline)}</p>\n' if tagline else ""
         ),
         profile_html=(
-            f'    <p class="profile"><a href="{profile_href}">'
-            f"github.com/{owner_esc}</a></p>\n"
+            f'      <p class="profile"><a href="{profile_href}">'
+            f"github.com/{html.escape(owner)}</a></p>\n"
             if owner
             else ""
         ),
+        section_label=f"works ({len(repos)})" if repos else "works",
         body=body,
         generated_at=html.escape(generated_at),
     )
@@ -283,6 +539,18 @@ def render_html(
 # --------------------------------------------------------------------------- #
 # Network layer — isolated for easy mocking in tests
 # --------------------------------------------------------------------------- #
+
+def _get_json(url: str, token: Optional[str] = None):
+    """GET ``url`` from the GitHub API and decode the JSON body."""
+    request = urllib.request.Request(url)
+    request.add_header("Accept", "application/vnd.github+json")
+    request.add_header("User-Agent", USER_AGENT)
+    request.add_header("X-GitHub-Api-Version", "2022-11-28")
+    if token:
+        request.add_header("Authorization", f"Bearer {token}")
+    with urllib.request.urlopen(request, timeout=30) as response:
+        return json.loads(response.read().decode("utf-8"))
+
 
 def fetch_repositories(user: str, token: Optional[str] = None) -> list[dict]:
     """Fetch all public repositories for ``user`` via the GitHub REST API.
@@ -294,24 +562,74 @@ def fetch_repositories(user: str, token: Optional[str] = None) -> list[dict]:
     """
     repos: list[dict] = []
     for page in range(1, MAX_PAGES + 1):
-        url = (
+        batch = _get_json(
             f"{API_ROOT}/users/{urllib.parse.quote(user)}/repos"
-            f"?per_page={PER_PAGE}&page={page}&type=public&sort=updated"
+            f"?per_page={PER_PAGE}&page={page}&type=public&sort=updated",
+            token,
         )
-        request = urllib.request.Request(url)
-        request.add_header("Accept", "application/vnd.github+json")
-        request.add_header("User-Agent", USER_AGENT)
-        request.add_header("X-GitHub-Api-Version", "2022-11-28")
-        if token:
-            request.add_header("Authorization", f"Bearer {token}")
-        with urllib.request.urlopen(request, timeout=30) as response:
-            batch = json.loads(response.read().decode("utf-8"))
         if not batch:
             break
         repos.extend(batch)
         if len(batch) < PER_PAGE:
             break
     return repos
+
+
+def fetch_profile(user: str, token: Optional[str] = None) -> Profile:
+    """Fetch the account's avatar and display name.
+
+    The portfolio still renders without them, so a failed lookup degrades to a
+    bare Profile instead of aborting the build.
+    """
+    try:
+        payload = _get_json(f"{API_ROOT}/users/{urllib.parse.quote(user)}", token)
+    except (urllib.error.URLError, ValueError, OSError) as exc:
+        print(f"warning: could not fetch profile for {user}: {exc}", file=sys.stderr)
+        return Profile(login=user)
+    return parse_profile(payload if isinstance(payload, dict) else {}, user)
+
+
+def fetch_preview(owner: str, repo: str, token: Optional[str] = None) -> str:
+    """Look for a preview image in ``repo``, returning its URL or ''.
+
+    PREVIEW_DIRS are probed in order and the first hit wins. Missing
+    directories (404) and any other lookup failure are treated as "no preview":
+    a project without one simply gets the monogram tile.
+    """
+    for directory in PREVIEW_DIRS:
+        path = urllib.parse.quote(directory)
+        try:
+            entries = _get_json(
+                f"{API_ROOT}/repos/{urllib.parse.quote(owner)}"
+                f"/{urllib.parse.quote(repo)}/contents/{path}",
+                token,
+            )
+        except urllib.error.HTTPError as exc:
+            if exc.code in (403, 404):
+                continue
+            print(f"warning: preview lookup failed for {repo}/{directory}: {exc}",
+                  file=sys.stderr)
+            return ""
+        except (urllib.error.URLError, ValueError, OSError) as exc:
+            print(f"warning: preview lookup failed for {repo}/{directory}: {exc}",
+                  file=sys.stderr)
+            return ""
+        if not isinstance(entries, list):
+            continue
+        url = select_preview(entries)
+        if url:
+            return url
+    return ""
+
+
+def attach_previews(
+    owner: str, repos: Sequence[Repo], token: Optional[str] = None
+) -> list[Repo]:
+    """Return ``repos`` with each entry's ``preview_url`` filled in where found."""
+    return [
+        replace(r, preview_url=fetch_preview(owner, r.name, token=token))
+        for r in repos
+    ]
 
 
 # --------------------------------------------------------------------------- #
@@ -325,11 +643,15 @@ def build(
     token: Optional[str] = None,
     now: Optional[datetime] = None,
     tagline: str = "",
+    previews: bool = True,
 ) -> list[Repo]:
     """Fetch, transform, and write both outputs. Returns the sorted repo list."""
     generated_at = (now or datetime.now(timezone.utc)).strftime("%Y-%m-%d %H:%M UTC")
     raw = fetch_repositories(user, token=token)
     repos = sort_repositories(parse_repositories(raw))
+    if previews:
+        repos = attach_previews(user, repos, token=token)
+    profile = fetch_profile(user, token=token)
 
     readme = readme_path.read_text(encoding="utf-8")
     readme_path.write_text(
@@ -338,7 +660,7 @@ def build(
 
     html_path.parent.mkdir(parents=True, exist_ok=True)
     html_path.write_text(
-        render_html(repos, generated_at, owner=user, tagline=tagline),
+        render_html(repos, generated_at, owner=user, tagline=tagline, profile=profile),
         encoding="utf-8",
     )
     return repos
@@ -369,13 +691,24 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser.add_argument(
         "--tagline",
         default="",
-        help="Subtitle line shown under the heading of the HTML page",
+        help="Profile line shown under the name on the HTML page "
+        "(defaults to the account's GitHub bio)",
+    )
+    parser.add_argument(
+        "--no-previews",
+        action="store_true",
+        help="Skip the per-repository preview-image lookup (one API call per repo)",
     )
     args = parser.parse_args(argv)
 
     try:
         repos = build(
-            args.user, args.readme, args.html, token=args.token, tagline=args.tagline
+            args.user,
+            args.readme,
+            args.html,
+            token=args.token,
+            tagline=args.tagline,
+            previews=not args.no_previews,
         )
     except (urllib.error.URLError, ValueError, OSError) as exc:
         print(f"error: {exc}", file=sys.stderr)

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+import urllib.error
 from datetime import datetime, timezone
 from pathlib import Path
 from unittest import mock
@@ -191,6 +192,108 @@ class ReplaceReadmeSectionTest(unittest.TestCase):
             bi.replace_readme_section(readme, "x")
 
 
+class IsMediaUrlTest(unittest.TestCase):
+    def test_accepts_github_asset_hosts(self):
+        self.assertTrue(bi.is_media_url("https://raw.githubusercontent.com/u/r/main/a.gif"))
+        self.assertTrue(bi.is_media_url("https://avatars.githubusercontent.com/u/1?v=4"))
+
+    def test_rejects_other_hosts_and_schemes(self):
+        for url in (
+            "https://evil.example/a.gif",
+            "http://raw.githubusercontent.com/u/r/main/a.gif",
+            "javascript:alert(1)",
+            "https://raw.githubusercontent.com.evil.example/a.gif",
+            "",
+        ):
+            with self.subTest(url=url):
+                self.assertFalse(bi.is_media_url(url))
+
+
+def make_entry(name: str, url: str = "", type_: str = "file") -> dict:
+    return {
+        "name": name,
+        "type": type_,
+        "download_url": url or f"https://raw.githubusercontent.com/u/r/main/{name}",
+    }
+
+
+class SelectPreviewTest(unittest.TestCase):
+    def test_picks_named_preview(self):
+        entries = [make_entry("index.html"), make_entry("preview.gif"), make_entry("logo.png")]
+        self.assertEqual(
+            bi.select_preview(entries),
+            "https://raw.githubusercontent.com/u/r/main/preview.gif",
+        )
+
+    def test_prefers_animated_formats(self):
+        entries = [make_entry("preview.png"), make_entry("demo.gif")]
+        self.assertTrue(bi.select_preview(entries).endswith("demo.gif"))
+
+    def test_prefers_earlier_stem_at_equal_format(self):
+        entries = [make_entry("screenshot.png"), make_entry("preview.png")]
+        self.assertTrue(bi.select_preview(entries).endswith("preview.png"))
+
+    def test_accepts_suffixed_stems(self):
+        entries = [make_entry("preview-dark.webp")]
+        self.assertTrue(bi.select_preview(entries).endswith("preview-dark.webp"))
+
+    def test_ignores_unrelated_names_and_types(self):
+        entries = [
+            make_entry("banner", url="https://raw.githubusercontent.com/u/r/main/banner"),
+            make_entry("style.css"),
+            make_entry("previewer.png"),  # stem must match on a -/_ boundary
+            make_entry("preview", type_="dir"),
+        ]
+        self.assertEqual(bi.select_preview(entries), "")
+
+    def test_rejects_off_domain_download_urls(self):
+        entries = [make_entry("preview.gif", url="https://evil.example/preview.gif")]
+        self.assertEqual(bi.select_preview(entries), "")
+
+    def test_is_deterministic_regardless_of_listing_order(self):
+        a = [make_entry("demo.gif"), make_entry("preview.gif")]
+        self.assertEqual(bi.select_preview(a), bi.select_preview(list(reversed(a))))
+
+    def test_empty_listing(self):
+        self.assertEqual(bi.select_preview([]), "")
+
+
+class ParseProfileTest(unittest.TestCase):
+    def test_reads_fields(self):
+        profile = bi.parse_profile(
+            {
+                "login": "someone",
+                "name": "Some One",
+                "avatar_url": "https://avatars.githubusercontent.com/u/1?v=4",
+                "bio": "a  b\nc",
+            },
+            "someone",
+        )
+        self.assertEqual(profile.display_name, "Some One")
+        self.assertEqual(profile.avatar_url, "https://avatars.githubusercontent.com/u/1?v=4")
+        self.assertEqual(profile.bio, "a b c")
+        self.assertEqual(profile.html_url, "https://github.com/someone")
+
+    def test_drops_off_domain_avatar(self):
+        profile = bi.parse_profile({"avatar_url": "https://evil.example/a.png"}, "u")
+        self.assertEqual(profile.avatar_url, "")
+
+    def test_falls_back_to_login_for_display_name(self):
+        self.assertEqual(bi.parse_profile({}, "someone").display_name, "someone")
+
+
+class TileTest(unittest.TestCase):
+    def test_monogram_uses_leading_alphanumerics(self):
+        self.assertEqual(bi._monogram("dowel"), "do")
+        self.assertEqual(bi._monogram("-x-y"), "xy")
+        self.assertEqual(bi._monogram("---"), "?")
+
+    def test_hue_is_stable_and_in_range(self):
+        self.assertEqual(bi._hue("dowel"), bi._hue("dowel"))
+        self.assertNotEqual(bi._hue("dowel"), bi._hue("deco"))
+        self.assertTrue(0 <= bi._hue("dowel") < 360)
+
+
 class RenderHtmlTest(unittest.TestCase):
     def test_escapes_dynamic_values(self):
         repos = [
@@ -206,34 +309,98 @@ class RenderHtmlTest(unittest.TestCase):
         self.assertIn("&lt;b&gt;x&lt;/b&gt;", out)
         self.assertIn("a=1&amp;b=2", out)
 
-    def test_renders_separate_repo_and_pages_links(self):
+    def test_renders_card_with_live_and_source_links(self):
         repos = [
             bi.Repo(
                 "proj",
-                "",
+                "a tool",
                 "https://u.github.io/proj/",
                 "2025-01-01T00:00:00Z",
                 "https://github.com/u/proj",
             )
         ]
         out = bi.render_html(repos, "t")
-        self.assertIn('<a href="https://github.com/u/proj">proj</a>', out)
-        self.assertIn('<a href="https://u.github.io/proj/">u.github.io/proj/</a>', out)
+        self.assertIn('<article class="card">', out)
+        self.assertIn('<h3><a href="https://u.github.io/proj/">proj</a></h3>', out)
+        self.assertIn('<a href="https://github.com/u/proj">source</a>', out)
+        self.assertIn('<p class="desc">a tool</p>', out)
+        self.assertIn('<span class="date">2025-01-01</span>', out)
+
+    def test_renders_preview_image_when_available(self):
+        repos = [
+            bi.Repo(
+                "proj",
+                "",
+                "https://u.github.io/proj/",
+                "2025-01-01T00:00:00Z",
+                preview_url="https://raw.githubusercontent.com/u/proj/main/docs/preview.gif",
+            )
+        ]
+        out = bi.render_html(repos, "t")
+        self.assertIn(
+            '<img src="https://raw.githubusercontent.com/u/proj/main/docs/preview.gif" '
+            'alt="preview of proj" loading="lazy" decoding="async">',
+            out,
+        )
+        self.assertNotIn('class="tile"', out)
+
+    def test_falls_back_to_monogram_tile(self):
+        repos = [bi.Repo("proj", "", "https://u.github.io/proj/", "2025-01-01T00:00:00Z")]
+        out = bi.render_html(repos, "t")
+        self.assertIn(f'<span class="tile" style="--h: {bi._hue("proj")}"', out)
+        self.assertIn("<span>pr</span>", out)
+        self.assertNotIn("<img src=", out)
+
+    def test_omits_source_link_without_html_url(self):
+        repos = [bi.Repo("proj", "", "https://u.github.io/proj/", "2025-01-01T00:00:00Z")]
+        self.assertNotIn(">source</a>", bi.render_html(repos, "t"))
 
     def test_renders_owner_heading_and_profile_link(self):
         out = bi.render_html([], "t", owner="someone")
         self.assertIn("<h1>someone</h1>", out)
         self.assertIn('<a href="https://github.com/someone">github.com/someone</a>', out)
 
+    def test_profile_supplies_avatar_and_display_name(self):
+        profile = bi.Profile(
+            login="someone",
+            name="Some One",
+            avatar_url="https://avatars.githubusercontent.com/u/1?v=4",
+        )
+        out = bi.render_html([], "t", owner="someone", profile=profile)
+        self.assertIn("<h1>Some One</h1>", out)
+        self.assertIn(
+            '<img class="avatar" src="https://avatars.githubusercontent.com/u/1?v=4"', out
+        )
+
+    def test_omits_avatar_when_profile_has_none(self):
+        out = bi.render_html([], "t", owner="u", profile=bi.Profile(login="u"))
+        self.assertNotIn('class="avatar"', out)
+        self.assertIn("<h1>u</h1>", out)
+
     def test_renders_tagline_when_given(self):
         out = bi.render_html([], "t", owner="u", tagline="hello <world>")
         self.assertIn('<p class="tagline">hello &lt;world&gt;</p>', out)
+
+    def test_tagline_falls_back_to_bio(self):
+        profile = bi.Profile(login="u", bio="mochimochi engineer.")
+        out = bi.render_html([], "t", owner="u", profile=profile)
+        self.assertIn('<p class="tagline">mochimochi engineer.</p>', out)
+
+    def test_explicit_tagline_wins_over_bio(self):
+        profile = bi.Profile(login="u", bio="from bio")
+        out = bi.render_html([], "t", owner="u", tagline="explicit", profile=profile)
+        self.assertIn('<p class="tagline">explicit</p>', out)
+        self.assertNotIn("from bio", out)
 
     def test_omits_tagline_and_profile_when_absent(self):
         out = bi.render_html([], "t")
         self.assertNotIn('class="tagline"', out)
         self.assertNotIn('class="profile"', out)
         self.assertIn("<h1>Published Repositories</h1>", out)
+
+    def test_section_label_counts_projects(self):
+        repos = [bi.Repo("proj", "", "https://u.github.io/proj/", "2025-01-01T00:00:00Z")]
+        self.assertIn(">works (1)</h2>", bi.render_html(repos, "t"))
 
     def test_empty_list_renders_placeholder(self):
         out = bi.render_html([], "t")
@@ -244,7 +411,64 @@ class RenderHtmlTest(unittest.TestCase):
         self.assertIn("2025-06-01 12:00 UTC", out)
 
 
+class FetchPreviewTest(unittest.TestCase):
+    def test_returns_first_directory_that_yields_a_match(self):
+        listings = {"docs": [], "docs/assets": [make_entry("preview.gif")]}
+
+        def fake_get(url, token=None):
+            path = url.split("/contents/", 1)[1]
+            if path not in listings:
+                raise urllib.error.HTTPError(url, 404, "Not Found", None, None)
+            return listings[path]
+
+        with mock.patch.object(bi, "_get_json", side_effect=fake_get) as get:
+            url = bi.fetch_preview("u", "r")
+        self.assertTrue(url.endswith("preview.gif"))
+        # stopped as soon as a preview was found
+        self.assertEqual(len(get.call_args_list), 2)
+
+    def test_missing_directories_yield_no_preview(self):
+        def fake_get(url, token=None):
+            raise urllib.error.HTTPError(url, 404, "Not Found", None, None)
+
+        with mock.patch.object(bi, "_get_json", side_effect=fake_get):
+            self.assertEqual(bi.fetch_preview("u", "r"), "")
+
+    def test_network_error_is_not_fatal(self):
+        with mock.patch.object(
+            bi, "_get_json", side_effect=urllib.error.URLError("down")
+        ):
+            self.assertEqual(bi.fetch_preview("u", "r"), "")
+
+    def test_file_response_is_skipped(self):
+        with mock.patch.object(bi, "_get_json", return_value={"type": "file"}):
+            self.assertEqual(bi.fetch_preview("u", "r"), "")
+
+
+class FetchProfileTest(unittest.TestCase):
+    def test_parses_payload(self):
+        payload = {"login": "u", "name": "U", "avatar_url": "https://avatars.githubusercontent.com/u/1"}
+        with mock.patch.object(bi, "_get_json", return_value=payload):
+            self.assertEqual(bi.fetch_profile("u").display_name, "U")
+
+    def test_network_error_degrades_to_login_only(self):
+        with mock.patch.object(
+            bi, "_get_json", side_effect=urllib.error.URLError("down")
+        ):
+            profile = bi.fetch_profile("u")
+        self.assertEqual(profile, bi.Profile(login="u"))
+
+
 class BuildOrchestrationTest(unittest.TestCase):
+    def setUp(self):
+        patches = [
+            mock.patch.object(bi, "fetch_preview", return_value=""),
+            mock.patch.object(bi, "fetch_profile", return_value=bi.Profile(login="someone")),
+        ]
+        for patch in patches:
+            patch.start()
+            self.addCleanup(patch.stop)
+
     def test_build_writes_both_outputs(self):
         raw = [
             make_raw(name="new", homepage="https://new.example", updated_at="2025-05-01T00:00:00Z"),
@@ -285,6 +509,28 @@ class BuildOrchestrationTest(unittest.TestCase):
             ) as fetch:
                 bi.build("u", readme, Path(d) / "out.html", token="secret")
             fetch.assert_called_once_with("u", token="secret")
+
+    def test_build_attaches_previews(self):
+        raw = [make_raw(name="proj", homepage="https://p.example")]
+        with tempfile.TemporaryDirectory() as d:
+            readme = Path(d) / "README.md"
+            readme.write_text(f"{bi.README_START}\n{bi.README_END}", encoding="utf-8")
+            preview = "https://raw.githubusercontent.com/u/proj/main/docs/preview.gif"
+            with mock.patch.object(bi, "fetch_repositories", return_value=raw), \
+                    mock.patch.object(bi, "fetch_preview", return_value=preview) as fetch:
+                (repo,) = bi.build("u", readme, Path(d) / "out.html")
+            fetch.assert_called_once_with("u", "proj", token=None)
+            self.assertEqual(repo.preview_url, preview)
+
+    def test_build_can_skip_previews(self):
+        raw = [make_raw(name="proj", homepage="https://p.example")]
+        with tempfile.TemporaryDirectory() as d:
+            readme = Path(d) / "README.md"
+            readme.write_text(f"{bi.README_START}\n{bi.README_END}", encoding="utf-8")
+            with mock.patch.object(bi, "fetch_repositories", return_value=raw), \
+                    mock.patch.object(bi, "fetch_preview") as fetch:
+                bi.build("u", readme, Path(d) / "out.html", previews=False)
+            fetch.assert_not_called()
 
 
 if __name__ == "__main__":
