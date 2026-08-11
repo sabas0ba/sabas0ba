@@ -53,6 +53,12 @@ jobs:
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: "3.14.6"
+      # Card images are screenshots of each project's own Pages site, taken
+      # with the Chrome that ships on the runner image. If it ever goes
+      # missing the build still succeeds — those cards fall back to the
+      # monogram tile — so this step only reports what was found.
+      - name: Report available browser
+        run: google-chrome --version || chromium --version || echo "no browser found"
       - name: Generate index
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -62,10 +68,10 @@ jobs:
           --tagline "mochimochi engineer."
       - name: Commit changes if any
         run: |
-          if [ -n "$(git status --porcelain README.md docs/index.html)" ]; then
+          if [ -n "$(git status --porcelain README.md docs)" ]; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add README.md docs/index.html
+            git add README.md docs
             git commit -m "chore: regenerate repository index"
             git push
           else

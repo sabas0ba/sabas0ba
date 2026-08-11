@@ -464,6 +464,7 @@ class BuildOrchestrationTest(unittest.TestCase):
         patches = [
             mock.patch.object(bi, "fetch_preview", return_value=""),
             mock.patch.object(bi, "fetch_profile", return_value=bi.Profile(login="someone")),
+            mock.patch.object(bi.capture_previews, "capture", side_effect=lambda r, *a, **k: list(r)),
         ]
         for patch in patches:
             patch.start()
@@ -531,6 +532,29 @@ class BuildOrchestrationTest(unittest.TestCase):
                     mock.patch.object(bi, "fetch_preview") as fetch:
                 bi.build("u", readme, Path(d) / "out.html", previews=False)
             fetch.assert_not_called()
+
+    def test_build_captures_into_previews_dir_beside_the_page(self):
+        raw = [make_raw(name="proj", homepage="https://p.example")]
+        with tempfile.TemporaryDirectory() as d:
+            readme = Path(d) / "README.md"
+            readme.write_text(f"{bi.README_START}\n{bi.README_END}", encoding="utf-8")
+            html_out = Path(d) / "docs" / "index.html"
+            with mock.patch.object(bi, "fetch_repositories", return_value=raw), \
+                    mock.patch.object(bi.capture_previews, "capture") as capture:
+                capture.side_effect = lambda r, *a, **k: list(r)
+                bi.build("u", readme, html_out)
+            args, kwargs = capture.call_args
+            self.assertEqual(args[1], Path(d) / "docs" / "previews")
+            self.assertEqual(kwargs["url_prefix"], "previews")
+
+    def test_build_can_skip_capture(self):
+        with tempfile.TemporaryDirectory() as d:
+            readme = Path(d) / "README.md"
+            readme.write_text(f"{bi.README_START}\n{bi.README_END}", encoding="utf-8")
+            with mock.patch.object(bi, "fetch_repositories", return_value=[]), \
+                    mock.patch.object(bi.capture_previews, "capture") as capture:
+                bi.build("u", readme, Path(d) / "out.html", capture=False)
+            capture.assert_not_called()
 
 
 if __name__ == "__main__":
