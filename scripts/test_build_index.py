@@ -511,6 +511,35 @@ class RenderHtmlTest(unittest.TestCase):
         )
         self.assertNotIn('class="tile"', out)
 
+    def test_dark_preview_is_offered_alongside_the_light_one(self):
+        repos = [
+            bi.Repo(
+                "proj",
+                "",
+                "https://u.github.io/proj/",
+                "2025-01-01T00:00:00Z",
+                preview_url="previews/proj.png",
+                preview_dark_url="previews/proj-dark.png",
+            )
+        ]
+        out = bi.render_html(repos, "t")
+        self.assertIn(
+            '<picture><source srcset="previews/proj-dark.png"'
+            ' media="(prefers-color-scheme: dark)">'
+            '<img src="previews/proj.png" alt="preview of proj"'
+            ' loading="lazy" decoding="async"></picture>',
+            out,
+        )
+
+    def test_no_picture_element_without_a_dark_capture(self):
+        repos = [
+            bi.Repo("proj", "", "https://u.github.io/proj/", "t",
+                    preview_url="previews/proj.png")
+        ]
+        out = bi.render_html(repos, "t")
+        self.assertNotIn("<picture>", out)
+        self.assertIn('<img src="previews/proj.png"', out)
+
     def test_falls_back_to_monogram_tile(self):
         repos = [bi.Repo("proj", "", "https://u.github.io/proj/", "2025-01-01T00:00:00Z")]
         out = bi.render_html(repos, "t")

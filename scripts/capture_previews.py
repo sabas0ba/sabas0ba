@@ -52,6 +52,13 @@ BROWSER_TIMEOUT = 90  # seconds, for one headless render
 # than a screenshot of the page itself.
 ANIMATED_EXTENSIONS = (".gif", ".apng")
 
+# Renders the page as a visitor with a dark system would see it. This sets the
+# prefers-color-scheme query and nothing else — Chrome's own page-darkening is
+# a separate feature and stays off, so a page with no dark styles comes out
+# identical to its light capture and gets folded back into one file.
+DARK_FLAGS = ("--blink-settings=preferredColorScheme=0",)
+DARK_SUFFIX = "-dark"
+
 # Chrome ships under several names depending on the image; the Playwright
 # download is used by local sandboxes that have no system browser.
 BROWSER_CANDIDATES = (
@@ -139,17 +146,38 @@ def safe_stem(name: str) -> str:
     return stem or "project"
 
 
-def manifest_entry(repo, filename: str, source: str) -> dict:
-    """Describe a captured image, for the freshness check on the next run."""
-    return {"updated_at": repo.updated_at, "file": filename, "source": source}
+def manifest_entry(repo, filename: str, source: str, dark: str = "") -> dict:
+    """Describe a captured image, for the freshness check on the next run.
+
+    ``dark`` names the dark-mode capture. The key is always written, empty when
+    the project's page looks the same either way — most do — so that "there is
+    no dark view" is on the record rather than indistinguishable from an entry
+    written before dark views were captured at all.
+    """
+    return {
+        "updated_at": repo.updated_at,
+        "file": filename,
+        "dark": dark,
+        "source": source,
+    }
 
 
 def is_current(entry: Optional[dict], repo, out_dir: Path) -> bool:
-    """Return True when a previously captured image can be reused as-is."""
+    """Return True when a previously captured image can be reused as-is.
+
+    An entry with no ``dark`` key predates dark captures; it is stale even at
+    the same revision, which is what carries the change onto existing images
+    without anyone asking for a refresh.
+    """
     if not entry or entry.get("updated_at") != repo.updated_at:
         return False
+    if "dark" not in entry:
+        return False
     filename = entry.get("file") or ""
-    return bool(filename) and (out_dir / filename).is_file()
+    if not filename or not (out_dir / filename).is_file():
+        return False
+    dark = entry.get("dark") or ""
+    return not dark or (out_dir / dark).is_file()
 
 
 def load_manifest(path: Path) -> dict:
@@ -174,8 +202,10 @@ def prune(out_dir: Path, manifest: dict) -> list[str]:
     Without this, a renamed or unpublished project would leave its image behind
     in the repository forever.
     """
-    keep = {entry.get("file") for entry in manifest.values() if isinstance(entry, dict)}
-    keep.add(MANIFEST_NAME)
+    keep = {MANIFEST_NAME}
+    for entry in manifest.values():
+        if isinstance(entry, dict):
+            keep.update(filter(None, (entry.get("file"), entry.get("dark"))))
     removed: list[str] = []
     for path in sorted(out_dir.glob("*")):
         if path.is_file() and path.name not in keep:
@@ -230,11 +260,15 @@ def download_image(url: str, dest: Path) -> bool:
     return True
 
 
-def screenshot(browser: str, url: str, dest: Path) -> bool:
+def screenshot(browser: str, url: str, dest: Path, dark: bool = False) -> bool:
     """Render ``url`` in headless Chrome and write a PNG to ``dest``.
 
     ``--virtual-time-budget`` fast-forwards the page's timers so fonts, lazy
-    images and entry animations have settled before the frame is taken.
+    images and entry animations have settled before the frame is taken. With
+    ``dark``, the page is rendered as it would appear to a visitor whose system
+    is set to dark: this only answers the prefers-color-scheme query, so a page
+    with no dark styles of its own comes out unchanged rather than machine-
+    darkened.
     """
     dest.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory() as profile:
@@ -248,6 +282,7 @@ def screenshot(browser: str, url: str, dest: Path) -> bool:
             "--force-device-scale-factor=1",
             f"--window-size={CAPTURE_WIDTH},{CAPTURE_HEIGHT}",
             "--virtual-time-budget=10000",
+            *(DARK_FLAGS if dark else ()),
             f"--user-data-dir={profile}",
             f"--screenshot={dest}",
             url,
@@ -313,7 +348,14 @@ def capture(
                 manifest[repo.name] = entry
         current = manifest.get(repo.name)
         if current:
-            result.append(replace(repo, preview_url=f"{prefix}/{current['file']}"))
+            dark = current.get("dark")
+            result.append(
+                replace(
+                    repo,
+                    preview_url=f"{prefix}/{current['file']}",
+                    preview_dark_url=f"{prefix}/{dark}" if dark else "",
+                )
+            )
         else:
             result.append(repo)
 
@@ -341,7 +383,32 @@ def _capture_one(repo, out_dir: Path, browser: str) -> Optional[dict]:
         # produce an error page.
         return None
     filename = f"{stem}.png"
-    if screenshot(browser, repo.homepage, out_dir / filename):
-        print(f"captured {repo.name} from a screenshot of {repo.homepage}")
-        return manifest_entry(repo, filename, "screenshot")
-    return None
+    if not screenshot(browser, repo.homepage, out_dir / filename):
+        return None
+    print(f"captured {repo.name} from a screenshot of {repo.homepage}")
+    return manifest_entry(
+        repo, filename, "screenshot", dark=_capture_dark(repo, out_dir, browser, stem)
+    )
+
+
+def _capture_dark(repo, out_dir: Path, browser: str, stem: str) -> str:
+    """Capture the dark-mode view, and return its filename — or '' if it matches.
+
+    Most project pages have no dark styles, so the two captures come out
+    byte-identical; keeping the second would double the repository's image
+    weight for nothing, and the page falls back to the one image anyway.
+    """
+    dark_name = f"{stem}{DARK_SUFFIX}.png"
+    dark_path = out_dir / dark_name
+    if not screenshot(browser, repo.homepage, dark_path, dark=True):
+        return ""
+    try:
+        same = dark_path.read_bytes() == (out_dir / f"{stem}.png").read_bytes()
+    except OSError as exc:
+        print(f"warning: could not compare {repo.name}'s captures: {exc}", file=sys.stderr)
+        same = True
+    if same:
+        dark_path.unlink(missing_ok=True)
+        return ""
+    print(f"  {repo.name} also has a dark view")
+    return dark_name

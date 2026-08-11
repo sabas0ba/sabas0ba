@@ -92,6 +92,7 @@ class Repo:
     updated_at: str  # ISO 8601 string as returned by the API
     html_url: str = ""  # repository page on github.com
     preview_url: str = ""  # image/animation shown on the portfolio card
+    preview_dark_url: str = ""  # same page seen in dark mode, when it differs
     tags: tuple[str, ...] = ()  # topics and language, for the filter bar
 
     @property
@@ -518,6 +519,7 @@ PAGE_TEMPLATE = Template("""\
     }
 
     .shot { display: block; background: var(--panel-hi); overflow: hidden; }
+    .shot picture { display: block; }
     .shot img {
       display: block;
       width: 100%;
@@ -653,13 +655,26 @@ def _hue(name: str) -> int:
 
 
 def _render_thumb(repo: Repo) -> str:
-    """Render the card's visual: the repository's preview media, or a monogram tile."""
+    """Render the card's visual: the repository's preview media, or a monogram tile.
+
+    Where a project's page has a dark view of its own, the card shows whichever
+    matches the visitor's own setting, so the grid does not read as a row of
+    lit windows on a dark page.
+    """
     name = html.escape(repo.name)
     if repo.preview_url:
-        return (
+        image = (
             f'<img src="{html.escape(repo.preview_url, quote=True)}" '
             f'alt="preview of {name}" loading="lazy" decoding="async">'
         )
+        if repo.preview_dark_url:
+            return (
+                "<picture>"
+                f'<source srcset="{html.escape(repo.preview_dark_url, quote=True)}"'
+                ' media="(prefers-color-scheme: dark)">'
+                f"{image}</picture>"
+            )
+        return image
     return (
         f'<span class="tile" style="--h: {_hue(repo.name)}" aria-hidden="true">'
         f"<span>{html.escape(_monogram(repo.name))}</span></span>"
