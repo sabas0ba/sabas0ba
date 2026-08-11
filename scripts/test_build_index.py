@@ -295,6 +295,137 @@ class TileTest(unittest.TestCase):
         self.assertTrue(0 <= bi._hue("dowel") < 360)
 
 
+class TagsTest(unittest.TestCase):
+    def test_normalize_lowercases_and_removes_spaces(self):
+        self.assertEqual(bi.normalize_tag("Jupyter Notebook"), "jupyter-notebook")
+        self.assertEqual(bi.normalize_tag("  Rust  "), "rust")
+
+    def test_normalize_keeps_language_punctuation(self):
+        self.assertEqual(bi.normalize_tag("C++"), "c++")
+        self.assertEqual(bi.normalize_tag("C#"), "c#")
+
+    def test_normalize_drops_other_characters(self):
+        self.assertEqual(bi.normalize_tag("a/b<c>"), "abc")
+        self.assertEqual(bi.normalize_tag("!!!"), "")
+
+    def test_parse_takes_topics_then_language(self):
+        item = make_raw(topics=["emulator", "RISC-V"], language="MoonBit")
+        self.assertEqual(bi.parse_tags(item), ("emulator", "risc-v", "moonbit"))
+
+    def test_parse_deduplicates_language_already_in_topics(self):
+        item = make_raw(topics=["rust", "editor"], language="Rust")
+        self.assertEqual(bi.parse_tags(item), ("rust", "editor"))
+
+    def test_parse_tolerates_missing_and_malformed_values(self):
+        self.assertEqual(bi.parse_tags({}), ())
+        self.assertEqual(bi.parse_tags({"topics": None, "language": None}), ())
+        self.assertEqual(bi.parse_tags({"topics": [1, "ok", None]}), ("ok",))
+
+    def test_repositories_carry_their_tags(self):
+        payload = [make_raw(topics=["fpga"], language="SystemVerilog")]
+        (repo,) = bi.parse_repositories(payload)
+        self.assertEqual(repo.tags, ("fpga", "systemverilog"))
+
+    def test_collect_orders_by_use_then_name(self):
+        repos = [
+            bi.Repo("a", "", "u", "t", tags=("rust", "cli")),
+            bi.Repo("b", "", "u", "t", tags=("rust", "web")),
+            bi.Repo("c", "", "u", "t", tags=("rust", "cli")),
+        ]
+        self.assertEqual(bi.collect_tags(repos), [("rust", 3), ("cli", 2), ("web", 1)])
+
+    def test_collect_is_capped(self):
+        repos = [bi.Repo("a", "", "u", "t", tags=tuple(f"t{i}" for i in range(30)))]
+        self.assertEqual(len(bi.collect_tags(repos)), bi.MAX_FILTER_TAGS)
+        self.assertEqual(len(bi.collect_tags(repos, limit=3)), 3)
+
+
+class RenderTagBarTest(unittest.TestCase):
+    def repos(self):
+        return [
+            bi.Repo("a", "", "https://a.example", "t", tags=("rust", "cli")),
+            bi.Repo("b", "", "https://b.example", "t", tags=("rust",)),
+        ]
+
+    def test_bar_lists_every_tag_as_a_pressable_chip(self):
+        out = bi.render_html(self.repos(), "t")
+        self.assertIn('<nav class="tags" aria-label="filter projects by tag">', out)
+        for tag, count in (("rust", 2), ("cli", 1)):
+            self.assertIn(
+                f'<button type="button" class="tag" data-tag="{tag}"'
+                f' aria-pressed="false">{tag}<span class="n">{count}</span></button>',
+                out,
+            )
+
+    def test_cards_carry_their_tags(self):
+        out = bi.render_html(self.repos(), "t")
+        self.assertIn('data-tags="rust cli"', out)
+        self.assertIn('data-tags="rust"', out)
+
+    def test_bar_is_omitted_when_there_is_nothing_to_filter(self):
+        # one tag would only ever hide the rest, and no tags means no bar
+        for tags in ((), ("rust",)):
+            with self.subTest(tags=tags):
+                repos = [bi.Repo("a", "", "https://a.example", "t", tags=tags)]
+                self.assertNotIn('class="tags"', bi.render_html(repos, "t"))
+
+    def test_bar_escapes_tag_values(self):
+        repos = [
+            bi.Repo("a", "", "https://a.example", "t", tags=('x"y', "z")),
+            bi.Repo("b", "", "https://b.example", "t", tags=('x"y',)),
+        ]
+        out = bi.render_html(repos, "t")
+        self.assertNotIn('data-tag="x"y"', out)
+        self.assertIn("&quot;", out)
+
+    def test_controls_are_inert_without_scripting(self):
+        out = bi.render_html(self.repos(), "t")
+        self.assertIn('document.documentElement.classList.add("js")', out)
+        self.assertIn(":root:not(.js) .tags { display: none; }", out)
+        self.assertIn(":root:not(.js) .card-tags .tag {", out)
+
+    def test_hidden_cards_take_display_back_from_the_class_rule(self):
+        # .card sets display, which outranks the UA rule for [hidden]
+        self.assertIn(".card[hidden] { display: none; }", bi.render_html(self.repos(), "t"))
+
+    def test_cards_show_their_own_tags_as_the_same_control(self):
+        out = bi.render_html(self.repos(), "t")
+        card = out.split('<article class="card"')[1]
+        self.assertIn('<p class="card-tags">', card)
+        self.assertIn(
+            '<button type="button" class="tag" data-tag="rust" aria-pressed="false">'
+            "rust</button>",
+            card,
+        )
+
+    def test_card_tags_omit_the_count(self):
+        card = bi.render_html(self.repos(), "t").split('<article class="card"')[1]
+        self.assertNotIn('class="n"', card.split("</article>")[0])
+
+    def test_card_tag_list_is_capped(self):
+        many = tuple(f"t{i}" for i in range(bi.MAX_CARD_TAGS + 4))
+        repos = [
+            bi.Repo("a", "", "https://a.example", "t", tags=many),
+            bi.Repo("b", "", "https://b.example", "t", tags=many),
+        ]
+        card = bi.render_html(repos, "t").split('<article class="card"')[1]
+        card = card.split("</article>")[0]
+        self.assertEqual(card.count('<button type="button"'), bi.MAX_CARD_TAGS)
+
+    def test_cards_without_tags_get_no_tag_row(self):
+        repos = [
+            bi.Repo("a", "", "https://a.example", "t", tags=("rust", "cli")),
+            bi.Repo("b", "", "https://b.example", "t"),
+        ]
+        second = bi.render_html(repos, "t").split('<article class="card"')[2]
+        self.assertNotIn('class="card-tags"', second)
+
+    def test_count_is_addressable_for_the_filter_script(self):
+        out = bi.render_html(self.repos(), "t")
+        self.assertIn('works (<span class="count">2</span>)', out)
+        self.assertIn('document.querySelector(".section .count")', out)
+
+
 class AccentTest(unittest.TestCase):
     """The accent hue is rolled per visit; both themes must follow the same hue."""
 
@@ -347,7 +478,7 @@ class RenderHtmlTest(unittest.TestCase):
             )
         ]
         out = bi.render_html(repos, "t")
-        self.assertIn('<article class="card" style="--i: 0">', out)
+        self.assertIn('<article class="card" style="--i: 0" data-tags="">', out)
         self.assertIn('<h3><a href="https://u.github.io/proj/">proj</a></h3>', out)
         self.assertIn('<a href="https://github.com/u/proj">source</a>', out)
         self.assertIn('<p class="desc">a tool</p>', out)
@@ -431,12 +562,12 @@ class RenderHtmlTest(unittest.TestCase):
             for n in ("a", "b", "c")
         ]
         out = bi.render_html(repos, "t")
-        positions = re.findall(r'<article class="card" style="--i: (\d+)">', out)
+        positions = re.findall(r'<article class="card" style="--i: (\d+)"', out)
         self.assertEqual(positions, ["0", "1", "2"])
 
     def test_section_label_counts_projects(self):
         repos = [bi.Repo("proj", "", "https://u.github.io/proj/", "2025-01-01T00:00:00Z")]
-        self.assertIn(">works (1)</h2>", bi.render_html(repos, "t"))
+        self.assertIn('works (<span class="count">1</span>)', bi.render_html(repos, "t"))
 
     def test_empty_list_renders_placeholder(self):
         out = bi.render_html([], "t")

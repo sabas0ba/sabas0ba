@@ -50,6 +50,14 @@ README_END = "<!-- INDEX:END -->"
 # the generated HTML page.
 DEFAULT_PREVIEW_DIR = "previews"
 
+# How many tags the filter bar offers. Beyond roughly this many the bar stops
+# reading as a set of controls and starts reading as a paragraph.
+MAX_FILTER_TAGS = 12
+
+# How many of its own tags a card shows. A project with a long topic list would
+# otherwise push its own description out of view.
+MAX_CARD_TAGS = 6
+
 # Directories probed (in order) for a project preview, and the file stems that
 # count as one. The first directory that yields a usable image wins, so a
 # repository can override a generic asset by putting one under docs/.
@@ -84,6 +92,7 @@ class Repo:
     updated_at: str  # ISO 8601 string as returned by the API
     html_url: str = ""  # repository page on github.com
     preview_url: str = ""  # image/animation shown on the portfolio card
+    tags: tuple[str, ...] = ()  # topics and language, for the filter bar
 
     @property
     def updated_date(self) -> str:
@@ -145,9 +154,61 @@ def parse_repositories(payload: Sequence[dict]) -> list[Repo]:
                 homepage=homepage,
                 updated_at=item.get("updated_at", ""),
                 html_url=(item.get("html_url") or "").strip(),
+                tags=parse_tags(item),
             )
         )
     return repos
+
+
+def normalize_tag(value: str) -> str:
+    """Reduce a topic or language name to one lowercase, space-free token.
+
+    Tags become whitespace-separated values of a data attribute and are matched
+    as whole tokens, so a tag may not contain a space: "Jupyter Notebook"
+    becomes "jupyter-notebook". Characters that are neither alphanumeric nor
+    part of a language's own name (``c++``, ``c#``, ``f*``) are dropped.
+    """
+    token = "-".join(value.lower().split())
+    return "".join(c for c in token if c.isalnum() or c in "+#*._-").strip("-")
+
+
+def parse_tags(item: dict) -> tuple[str, ...]:
+    """Collect one repository's tags: its GitHub topics, plus its main language.
+
+    The language is included because it is the filter a visitor is most likely
+    to reach for, and because a repository with no topics set would otherwise
+    be unreachable from the filter bar. Order is preserved and duplicates are
+    dropped, so a language that is also a topic appears once.
+    """
+    raw = list(item.get("topics") or [])
+    language = item.get("language")
+    if language:
+        raw.append(language)
+    tags: list[str] = []
+    for value in raw:
+        if not isinstance(value, str):
+            continue
+        tag = normalize_tag(value)
+        if tag and tag not in tags:
+            tags.append(tag)
+    return tuple(tags)
+
+
+def collect_tags(
+    repos: Sequence[Repo], limit: int = MAX_FILTER_TAGS
+) -> list[tuple[str, int]]:
+    """Return the tags worth offering as filters, with how many projects carry each.
+
+    Ordering is by that count, descending, then alphabetically so the bar is
+    stable between builds. The list is capped: past a dozen or so the bar stops
+    being a control and becomes a wall of words.
+    """
+    counts: dict[str, int] = {}
+    for repo in repos:
+        for tag in repo.tags:
+            counts[tag] = counts.get(tag, 0) + 1
+    ranked = sorted(counts.items(), key=lambda item: (-item[1], item[0]))
+    return ranked[:limit]
 
 
 def sort_repositories(repos: Iterable[Repo]) -> list[Repo]:
@@ -360,11 +421,51 @@ PAGE_TEMPLATE = Template("""\
     .tagline { margin: 0.15rem 0 0; color: var(--text); }
     .profile { margin: 0.15rem 0 0; color: var(--muted); font-size: 0.85rem; }
 
+    /* Sits in the gap between the profile and the works, as its own band. */
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin: 2.25rem 0 0;
+    }
+    /* Filtering needs a script. Without one the bar is not shown at all, and a
+       card's tags stay plain labels rather than buttons that do nothing. The
+       class is set in the head, before the first paint. */
+    :root:not(.js) .tags { display: none; }
+    :root:not(.js) .card-tags .tag {
+      pointer-events: none;
+      cursor: default;
+      background: none;
+      border-color: transparent;
+      padding-inline: 0;
+    }
+    .tag {
+      font: inherit;
+      font-size: 0.78rem;
+      line-height: 1.5;
+      color: var(--muted);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 0.15rem 0.7rem;
+      cursor: pointer;
+      transition: color 0.15s ease, border-color 0.15s ease;
+    }
+    /* The count rides along inside the button, so pressing it still counts
+       as pressing the chip. */
+    .tag .n { margin-left: 0.4rem; opacity: 0.6; }
+    .tag:hover { color: var(--text); border-color: var(--accent); }
+    .tag[aria-pressed="true"] {
+      color: var(--bg);
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
     .section {
       display: flex;
       align-items: baseline;
       gap: 0.6rem;
-      margin: 2.75rem 0 1rem;
+      margin: 1.6rem 0 1rem;
       font-size: 0.8rem;
       font-weight: 500;
       letter-spacing: 0.08em;
@@ -401,6 +502,8 @@ PAGE_TEMPLATE = Template("""\
       from { opacity: 0; transform: translateY(12px); }
       to { opacity: 1; transform: none; }
     }
+    /* .card sets display, which would otherwise win over [hidden]'s none. */
+    .card[hidden] { display: none; }
     .card:hover { border-color: var(--accent); transform: translateY(-2px); }
     /* The preview leans in a little under the cursor; the card clips it. */
     .card:hover .shot img, .card:hover .tile { transform: scale(1.035); }
@@ -456,6 +559,8 @@ PAGE_TEMPLATE = Template("""\
     .body { display: flex; flex-direction: column; gap: 0.4rem; padding: 0.9rem 1rem 1rem; flex: 1; }
     .body h3 { margin: 0; font-size: 0.98rem; font-weight: 600; }
     .desc { margin: 0; color: var(--muted); font-size: 0.85rem; line-height: 1.55; }
+    .card-tags { display: flex; flex-wrap: wrap; gap: 0.3rem; margin: 0.15rem 0 0; }
+    .card-tags .tag { font-size: 0.72rem; padding: 0.02rem 0.5rem; }
     .meta {
       display: flex;
       align-items: center;
@@ -473,10 +578,14 @@ PAGE_TEMPLATE = Template("""\
     footer p { margin: 0; }
     footer .built::before { content: "// "; }
   </style>
-  <!-- The page's one line of script: roll the accent hue for this visit. It
-       runs before the first paint so the colour never visibly changes, and
-       with scripting off the stylesheet's fallback hue stands. -->
-  <script>document.documentElement.style.setProperty("--ha", Math.floor(Math.random() * 360));</script>
+  <!-- Runs before the first paint, so neither the colour nor the filter bar
+       is seen changing: roll this visit's accent hue, and mark the document
+       as scripted so the tag controls are shown at all. With scripting off,
+       the stylesheet's fallback hue stands and the controls stay out. -->
+  <script>
+    document.documentElement.classList.add("js");
+    document.documentElement.style.setProperty("--ha", Math.floor(Math.random() * 360));
+  </script>
 </head>
 <body>
   <header class="intro">
@@ -484,7 +593,7 @@ $avatar_html    <div>
       <h1>$heading</h1>
 $tagline_html$profile_html    </div>
   </header>
-  <main>
+$tags_html  <main>
     <h2 class="section">$section_label</h2>
     <div class="grid">
 $body
@@ -493,6 +602,32 @@ $body
   <footer>
 $copyright_html    <p class="built">generated at $generated_at</p>
   </footer>
+  <script>
+    // Filter the grid by tag. One listener on the document covers both the bar
+    // and the tags on each card, so pressing a tag anywhere does the same
+    // thing, and every copy of that tag shows itself pressed.
+    (function () {
+      var cards = Array.prototype.slice.call(document.querySelectorAll(".card"));
+      var count = document.querySelector(".section .count");
+      var active = "";
+      document.addEventListener("click", function (event) {
+        var chip = event.target.closest(".tag");
+        if (!chip) return;
+        active = chip.dataset.tag === active ? "" : chip.dataset.tag;
+        document.querySelectorAll(".tag").forEach(function (each) {
+          each.setAttribute("aria-pressed", String(each.dataset.tag === active));
+        });
+        var shown = 0;
+        cards.forEach(function (card) {
+          var tags = " " + card.dataset.tags + " ";
+          var match = !active || tags.indexOf(" " + active + " ") !== -1;
+          card.hidden = !match;
+          shown += match ? 1 : 0;
+        });
+        if (count) count.textContent = shown;
+      });
+    })();
+  </script>
 </body>
 </html>
 """)
@@ -527,6 +662,35 @@ def _render_thumb(repo: Repo) -> str:
     )
 
 
+def _render_tags(tags: Sequence[tuple[str, int]]) -> str:
+    """Render the filter bar, or '' when there is nothing to filter by.
+
+    Each chip carries how many projects it selects, so the size of a filter is
+    visible before pressing it. The bar is emitted hidden; the page's script
+    reveals it. One tag alone is not a filter — it would only ever hide the
+    rest — so it takes at least two for the bar to appear.
+    """
+    if len(tags) < 2:
+        return ""
+    chips = "\n".join(
+        "      " + _chip(tag, count) for tag, count in tags
+    )
+    return (
+        '  <nav class="tags" aria-label="filter projects by tag">\n'
+        f"{chips}\n"
+        "  </nav>\n"
+    )
+
+
+def _chip(tag: str, count: Optional[int] = None) -> str:
+    """Render one tag as a filter control, optionally with the number it selects."""
+    number = f'<span class="n">{count}</span>' if count is not None else ""
+    return (
+        f'<button type="button" class="tag" data-tag="{html.escape(tag, quote=True)}"'
+        f' aria-pressed="false">{html.escape(tag)}{number}</button>'
+    )
+
+
 def _render_card(repo: Repo, index: int = 0) -> str:
     """Render one project card: preview, name, description, links and date.
 
@@ -535,14 +699,18 @@ def _render_card(repo: Repo, index: int = 0) -> str:
     """
     name = html.escape(repo.name)
     pages_href = html.escape(repo.homepage, quote=True)
+    tags = html.escape(" ".join(repo.tags), quote=True)
     lines = [
-        f'      <article class="card" style="--i: {index}">',
+        f'      <article class="card" style="--i: {index}" data-tags="{tags}">',
         f'        <a class="shot" href="{pages_href}">{_render_thumb(repo)}</a>',
         '        <div class="body">',
         f'          <h3><a href="{pages_href}">{name}</a></h3>',
     ]
     if repo.description:
         lines.append(f'          <p class="desc">{html.escape(repo.description)}</p>')
+    if repo.tags:
+        shown = "".join(_chip(t) for t in repo.tags[:MAX_CARD_TAGS])
+        lines.append(f'          <p class="card-tags">{shown}</p>')
     meta = [f'<a href="{pages_href}">live</a>']
     if repo.html_url:
         meta.append('<span class="sep" aria-hidden="true">·</span>')
@@ -601,7 +769,10 @@ def render_html(
             if owner
             else ""
         ),
-        section_label=f"works ({len(repos)})" if repos else "works",
+        section_label=(
+            f'works (<span class="count">{len(repos)}</span>)' if repos else "works"
+        ),
+        tags_html=_render_tags(collect_tags(repos)),
         body=body,
         copyright_html=(
             f'    <p class="copyright">© {html.escape(year)} {heading}</p>\n'
