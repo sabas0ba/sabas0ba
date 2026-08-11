@@ -173,25 +173,29 @@ def normalize_tag(value: str) -> str:
 
 
 def parse_tags(item: dict) -> tuple[str, ...]:
-    """Collect one repository's tags: its GitHub topics, plus its main language.
+    """Collect one repository's tags: its GitHub topics, or its main language.
 
-    The language is included because it is the filter a visitor is most likely
-    to reach for, and because a repository with no topics set would otherwise
-    be unreachable from the filter bar. Order is preserved and duplicates are
-    dropped, so a language that is also a topic appears once.
+    Topics are what the author chose to say about the project, so where they
+    exist they are the whole answer. The detected language only stands in when
+    there are none, which keeps such a repository reachable from the filter bar
+    without letting language detection speak over the author: a build script
+    was making an FPGA project "powershell".
     """
-    raw = list(item.get("topics") or [])
-    language = item.get("language")
-    if language:
-        raw.append(language)
     tags: list[str] = []
-    for value in raw:
+    for value in item.get("topics") or []:
         if not isinstance(value, str):
             continue
         tag = normalize_tag(value)
         if tag and tag not in tags:
             tags.append(tag)
-    return tuple(tags)
+    if tags:
+        return tuple(tags)
+    language = item.get("language")
+    if isinstance(language, str):
+        fallback = normalize_tag(language)
+        if fallback:
+            return (fallback,)
+    return ()
 
 
 def collect_tags(

@@ -308,23 +308,32 @@ class TagsTest(unittest.TestCase):
         self.assertEqual(bi.normalize_tag("a/b<c>"), "abc")
         self.assertEqual(bi.normalize_tag("!!!"), "")
 
-    def test_parse_takes_topics_then_language(self):
-        item = make_raw(topics=["emulator", "RISC-V"], language="MoonBit")
-        self.assertEqual(bi.parse_tags(item), ("emulator", "risc-v", "moonbit"))
+    def test_parse_uses_topics_and_ignores_the_language(self):
+        # language detection must not speak over what the author chose to say
+        item = make_raw(topics=["fpga", "Tang-Nano-9K"], language="PowerShell")
+        self.assertEqual(bi.parse_tags(item), ("fpga", "tang-nano-9k"))
 
-    def test_parse_deduplicates_language_already_in_topics(self):
-        item = make_raw(topics=["rust", "editor"], language="Rust")
+    def test_parse_falls_back_to_the_language_without_topics(self):
+        for topics in (None, []):
+            with self.subTest(topics=topics):
+                item = make_raw(topics=topics, language="MoonBit")
+                self.assertEqual(bi.parse_tags(item), ("moonbit",))
+
+    def test_parse_deduplicates_repeated_topics(self):
+        item = make_raw(topics=["rust", "Rust", "editor"])
         self.assertEqual(bi.parse_tags(item), ("rust", "editor"))
 
     def test_parse_tolerates_missing_and_malformed_values(self):
         self.assertEqual(bi.parse_tags({}), ())
         self.assertEqual(bi.parse_tags({"topics": None, "language": None}), ())
         self.assertEqual(bi.parse_tags({"topics": [1, "ok", None]}), ("ok",))
+        self.assertEqual(bi.parse_tags({"topics": ["!!!"], "language": "Rust"}), ("rust",))
+        self.assertEqual(bi.parse_tags({"language": 42}), ())
 
     def test_repositories_carry_their_tags(self):
         payload = [make_raw(topics=["fpga"], language="SystemVerilog")]
         (repo,) = bi.parse_repositories(payload)
-        self.assertEqual(repo.tags, ("fpga", "systemverilog"))
+        self.assertEqual(repo.tags, ("fpga",))
 
     def test_collect_orders_by_use_then_name(self):
         repos = [
