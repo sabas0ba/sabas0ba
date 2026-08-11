@@ -50,6 +50,10 @@ README_END = "<!-- INDEX:END -->"
 # the generated HTML page.
 DEFAULT_PREVIEW_DIR = "previews"
 
+# How many tags the filter bar offers. Beyond roughly this many the bar stops
+# reading as a set of controls and starts reading as a paragraph.
+MAX_FILTER_TAGS = 12
+
 # Directories probed (in order) for a project preview, and the file stems that
 # count as one. The first directory that yields a usable image wins, so a
 # repository can override a generic asset by putting one under docs/.
@@ -84,6 +88,7 @@ class Repo:
     updated_at: str  # ISO 8601 string as returned by the API
     html_url: str = ""  # repository page on github.com
     preview_url: str = ""  # image/animation shown on the portfolio card
+    tags: tuple[str, ...] = ()  # topics and language, for the filter bar
 
     @property
     def updated_date(self) -> str:
@@ -145,9 +150,59 @@ def parse_repositories(payload: Sequence[dict]) -> list[Repo]:
                 homepage=homepage,
                 updated_at=item.get("updated_at", ""),
                 html_url=(item.get("html_url") or "").strip(),
+                tags=parse_tags(item),
             )
         )
     return repos
+
+
+def normalize_tag(value: str) -> str:
+    """Reduce a topic or language name to one lowercase, space-free token.
+
+    Tags become whitespace-separated values of a data attribute and are matched
+    as whole tokens, so a tag may not contain a space: "Jupyter Notebook"
+    becomes "jupyter-notebook". Characters that are neither alphanumeric nor
+    part of a language's own name (``c++``, ``c#``, ``f*``) are dropped.
+    """
+    token = "-".join(value.lower().split())
+    return "".join(c for c in token if c.isalnum() or c in "+#*._-").strip("-")
+
+
+def parse_tags(item: dict) -> tuple[str, ...]:
+    """Collect one repository's tags: its GitHub topics, plus its main language.
+
+    The language is included because it is the filter a visitor is most likely
+    to reach for, and because a repository with no topics set would otherwise
+    be unreachable from the filter bar. Order is preserved and duplicates are
+    dropped, so a language that is also a topic appears once.
+    """
+    raw = list(item.get("topics") or [])
+    language = item.get("language")
+    if language:
+        raw.append(language)
+    tags: list[str] = []
+    for value in raw:
+        if not isinstance(value, str):
+            continue
+        tag = normalize_tag(value)
+        if tag and tag not in tags:
+            tags.append(tag)
+    return tuple(tags)
+
+
+def collect_tags(repos: Sequence[Repo], limit: int = MAX_FILTER_TAGS) -> list[str]:
+    """Return the tags worth offering as filters, most-used first.
+
+    Ordering is by how many projects carry the tag, then alphabetically so the
+    bar is stable between builds. The list is capped: past a dozen or so the
+    bar stops being a control and becomes a wall of words.
+    """
+    counts: dict[str, int] = {}
+    for repo in repos:
+        for tag in repo.tags:
+            counts[tag] = counts.get(tag, 0) + 1
+    ranked = sorted(counts, key=lambda tag: (-counts[tag], tag))
+    return ranked[:limit]
 
 
 def sort_repositories(repos: Iterable[Repo]) -> list[Repo]:
@@ -360,11 +415,40 @@ PAGE_TEMPLATE = Template("""\
     .tagline { margin: 0.15rem 0 0; color: var(--text); }
     .profile { margin: 0.15rem 0 0; color: var(--muted); font-size: 0.85rem; }
 
+    /* Sits in the gap between the profile and the works, as its own band. */
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin: 2.25rem 0 0;
+    }
+    /* Author styles outrank the UA rule for [hidden], so display has to be
+       taken back explicitly — otherwise the bar shows without its script. */
+    .tags[hidden] { display: none; }
+    .tag {
+      font: inherit;
+      font-size: 0.78rem;
+      line-height: 1.5;
+      color: var(--muted);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 0.15rem 0.7rem;
+      cursor: pointer;
+      transition: color 0.15s ease, border-color 0.15s ease;
+    }
+    .tag:hover { color: var(--text); border-color: var(--accent); }
+    .tag[aria-pressed="true"] {
+      color: var(--bg);
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
     .section {
       display: flex;
       align-items: baseline;
       gap: 0.6rem;
-      margin: 2.75rem 0 1rem;
+      margin: 1.6rem 0 1rem;
       font-size: 0.8rem;
       font-weight: 500;
       letter-spacing: 0.08em;
@@ -401,6 +485,8 @@ PAGE_TEMPLATE = Template("""\
       from { opacity: 0; transform: translateY(12px); }
       to { opacity: 1; transform: none; }
     }
+    /* .card sets display, which would otherwise win over [hidden]'s none. */
+    .card[hidden] { display: none; }
     .card:hover { border-color: var(--accent); transform: translateY(-2px); }
     /* The preview leans in a little under the cursor; the card clips it. */
     .card:hover .shot img, .card:hover .tile { transform: scale(1.035); }
@@ -484,7 +570,7 @@ $avatar_html    <div>
       <h1>$heading</h1>
 $tagline_html$profile_html    </div>
   </header>
-  <main>
+$tags_html  <main>
     <h2 class="section">$section_label</h2>
     <div class="grid">
 $body
@@ -493,6 +579,34 @@ $body
   <footer>
 $copyright_html    <p class="built">generated at $generated_at</p>
   </footer>
+  <script>
+    // Filter the grid by tag. The bar ships hidden and is revealed here, so a
+    // visitor without scripting is not shown controls that cannot work.
+    (function () {
+      var bar = document.querySelector(".tags");
+      if (!bar) return;
+      var cards = Array.prototype.slice.call(document.querySelectorAll(".card"));
+      var count = document.querySelector(".section .count");
+      var active = "";
+      bar.hidden = false;
+      bar.addEventListener("click", function (event) {
+        var chip = event.target.closest(".tag");
+        if (!chip) return;
+        active = chip.dataset.tag === active ? "" : chip.dataset.tag;
+        bar.querySelectorAll(".tag").forEach(function (each) {
+          each.setAttribute("aria-pressed", String(each.dataset.tag === active));
+        });
+        var shown = 0;
+        cards.forEach(function (card) {
+          var tags = " " + card.dataset.tags + " ";
+          var match = !active || tags.indexOf(" " + active + " ") !== -1;
+          card.hidden = !match;
+          shown += match ? 1 : 0;
+        });
+        if (count) count.textContent = shown;
+      });
+    })();
+  </script>
 </body>
 </html>
 """)
@@ -527,6 +641,27 @@ def _render_thumb(repo: Repo) -> str:
     )
 
 
+def _render_tags(tags: Sequence[str]) -> str:
+    """Render the filter bar, or '' when there is nothing to filter by.
+
+    The bar is emitted hidden; the page's script reveals it. One tag alone is
+    not a filter — it would only ever hide the rest — so it takes at least two
+    for the bar to appear.
+    """
+    if len(tags) < 2:
+        return ""
+    chips = "\n".join(
+        f'      <button type="button" class="tag" data-tag="{html.escape(t, quote=True)}"'
+        f' aria-pressed="false">{html.escape(t)}</button>'
+        for t in tags
+    )
+    return (
+        '  <nav class="tags" hidden aria-label="filter projects by tag">\n'
+        f"{chips}\n"
+        "  </nav>\n"
+    )
+
+
 def _render_card(repo: Repo, index: int = 0) -> str:
     """Render one project card: preview, name, description, links and date.
 
@@ -535,8 +670,9 @@ def _render_card(repo: Repo, index: int = 0) -> str:
     """
     name = html.escape(repo.name)
     pages_href = html.escape(repo.homepage, quote=True)
+    tags = html.escape(" ".join(repo.tags), quote=True)
     lines = [
-        f'      <article class="card" style="--i: {index}">',
+        f'      <article class="card" style="--i: {index}" data-tags="{tags}">',
         f'        <a class="shot" href="{pages_href}">{_render_thumb(repo)}</a>',
         '        <div class="body">',
         f'          <h3><a href="{pages_href}">{name}</a></h3>',
@@ -601,7 +737,10 @@ def render_html(
             if owner
             else ""
         ),
-        section_label=f"works ({len(repos)})" if repos else "works",
+        section_label=(
+            f'works (<span class="count">{len(repos)}</span>)' if repos else "works"
+        ),
+        tags_html=_render_tags(collect_tags(repos)),
         body=body,
         copyright_html=(
             f'    <p class="copyright">© {html.escape(year)} {heading}</p>\n'
