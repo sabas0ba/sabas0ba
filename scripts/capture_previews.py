@@ -22,12 +22,14 @@ falls back to its monogram tile.
 
 from __future__ import annotations
 
+import base64
 import json
 import os
 import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -46,6 +48,15 @@ MANIFEST_NAME = "manifest.json"
 MAX_IMAGE_BYTES = 8 * 1024 * 1024  # keeps a stray large asset out of git history
 PAGE_TIMEOUT = 30  # seconds, for plain HTTP fetches
 BROWSER_TIMEOUT = 90  # seconds, for one headless render
+CDP_TIMEOUT = 30  # seconds, for one command to the driven browser
+LOAD_TIMEOUT = 30  # seconds to wait for the page's load event
+
+# Real seconds to let a page run after it has loaded, before the frame is
+# taken. Pages arrange themselves, start animations, and some correct their
+# own state a moment in — a sky simulator opened in daylight jumping to
+# evening, for instance. Real seconds, not fast-forwarded ones: a simulation
+# given fast-forwarded time simply runs, landing somewhere no visitor sees.
+DEFAULT_SETTLE = 4.0
 
 # Only formats that are animated by definition are lifted out of a page: a
 # .png/.webp <img> is usually a logo or a badge, which would make a worse card
@@ -260,15 +271,199 @@ def download_image(url: str, dest: Path) -> bool:
     return True
 
 
+class Session:
+    """A headless Chrome kept open, driven over its remote-debugging pipe.
+
+    Chrome's ``--screenshot`` switch captures the moment the page settles, and
+    the only way to make it wait is ``--virtual-time-budget``, which does not
+    wait at all: it fast-forwards the page's clock. That is right for a page
+    that is merely slow to arrange itself, and wrong for one that animates or
+    plays — fast-forwarding a simulation runs it, so the frame shows a state no
+    visitor would see. Driving the browser instead lets the page have real
+    seconds, and lets the viewport and the colour scheme be stated exactly.
+
+    Every call is guarded: on any protocol trouble the session marks itself
+    dead and the caller falls back to the switch-driven capture.
+    """
+
+    def __init__(self, executable: str) -> None:
+        self._proc: Optional[subprocess.Popen] = None
+        self._write = self._read = -1
+        self._buffer = b""
+        self._next_id = 0
+        self._start(executable)
+
+    # -- lifecycle -------------------------------------------------------- #
+
+    def _start(self, executable: str) -> None:
+        self._profile = tempfile.TemporaryDirectory()
+        from_browser, to_us = os.pipe()
+        from_us, to_browser = os.pipe()
+
+        def place_pipes() -> None:
+            # Chrome reads commands from fd 3 and writes replies to fd 4.
+            duplicates = os.dup(from_us), os.dup(to_us)
+            os.dup2(duplicates[0], 3)
+            os.dup2(duplicates[1], 4)
+            os.set_inheritable(3, True)
+            os.set_inheritable(4, True)
+
+        self._proc = subprocess.Popen(
+            [
+                executable,
+                "--headless=new",
+                "--disable-gpu",
+                "--no-sandbox",
+                "--disable-dev-shm-usage",
+                "--hide-scrollbars",
+                f"--user-data-dir={self._profile.name}",
+                "--remote-debugging-pipe",
+            ],
+            preexec_fn=place_pipes,
+            # The fds placed above are not in pass_fds, and would be closed
+            # between preexec_fn and exec; keeping every fd open is what lets
+            # them survive into the browser.
+            close_fds=False,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        os.close(from_us)
+        os.close(to_us)
+        self._write, self._read = to_browser, from_browser
+        self.call("Browser.getVersion")
+
+    def close(self) -> None:
+        for fd in (self._write, self._read):
+            try:
+                os.close(fd)
+            except OSError:
+                pass
+        self._write = self._read = -1
+        if self._proc:
+            self._proc.terminate()
+            try:
+                self._proc.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                self._proc.kill()
+            self._proc = None
+        self._profile.cleanup()
+
+    @property
+    def alive(self) -> bool:
+        return self._proc is not None and self._proc.poll() is None
+
+    # -- protocol --------------------------------------------------------- #
+
+    def _messages(self, deadline: float):
+        """Yield protocol messages as they arrive, until ``deadline``."""
+        while True:
+            while b"\0" in self._buffer:
+                raw, self._buffer = self._buffer.split(b"\0", 1)
+                yield json.loads(raw)
+            if time.monotonic() > deadline:
+                raise TimeoutError("browser went quiet")
+            chunk = os.read(self._read, 1 << 16)
+            if not chunk:
+                raise EOFError("browser closed the pipe")
+            self._buffer += chunk
+
+    def call(self, method: str, params: Optional[dict] = None,
+             session: str = "", timeout: float = CDP_TIMEOUT) -> dict:
+        """Send one command and return its result, raising on error."""
+        self._next_id += 1
+        message = {"id": self._next_id, "method": method, "params": params or {}}
+        if session:
+            message["sessionId"] = session
+        os.write(self._write, json.dumps(message).encode("utf-8") + b"\0")
+        for reply in self._messages(time.monotonic() + timeout):
+            if reply.get("id") == self._next_id:
+                if "error" in reply:
+                    raise RuntimeError(f"{method}: {reply['error']}")
+                return reply.get("result", {})
+        raise TimeoutError(method)
+
+    def await_event(self, method: str, session: str, timeout: float) -> bool:
+        """Wait for one event, returning False if it does not arrive in time."""
+        try:
+            for message in self._messages(time.monotonic() + timeout):
+                if message.get("method") == method:
+                    return True
+        except (TimeoutError, EOFError, OSError, ValueError):
+            pass
+        return False
+
+    # -- capture ---------------------------------------------------------- #
+
+    def capture(self, url: str, dest: Path, dark: bool, settle: float) -> bool:
+        """Open ``url`` in a fresh tab, let it run, and write a PNG to ``dest``."""
+        target = ""
+        try:
+            target = self.call("Target.createTarget", {"url": "about:blank"})["targetId"]
+            tab = self.call(
+                "Target.attachToTarget", {"targetId": target, "flatten": True}
+            )["sessionId"]
+            self.call("Page.enable", session=tab)
+            self.call(
+                "Emulation.setDeviceMetricsOverride",
+                {
+                    "width": CAPTURE_WIDTH,
+                    "height": CAPTURE_HEIGHT,
+                    "deviceScaleFactor": 1,
+                    "mobile": False,
+                },
+                session=tab,
+            )
+            if dark:
+                self.call(
+                    "Emulation.setEmulatedMedia",
+                    {"features": [{"name": "prefers-color-scheme", "value": "dark"}]},
+                    session=tab,
+                )
+            self.call("Page.navigate", {"url": url}, session=tab)
+            self.await_event("Page.loadEventFired", tab, LOAD_TIMEOUT)
+            time.sleep(settle)
+            data = self.call(
+                "Page.captureScreenshot", {"format": "png"}, session=tab
+            )["data"]
+        except (RuntimeError, TimeoutError, EOFError, OSError, ValueError, KeyError) as exc:
+            print(f"warning: capture of {url} failed: {exc}", file=sys.stderr)
+            return False
+        finally:
+            if target:
+                try:
+                    self.call("Target.closeTarget", {"targetId": target})
+                except Exception:  # the tab is going away regardless
+                    pass
+        payload = base64.b64decode(data)
+        if not payload:
+            return False
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_bytes(payload)
+        return True
+
+
+def open_session(executable: str) -> Optional[Session]:
+    """Start a driven browser, or return None so the caller uses the switch."""
+    if not executable:
+        return None
+    try:
+        return Session(executable)
+    except (OSError, RuntimeError, TimeoutError, EOFError, ValueError) as exc:
+        print(f"warning: could not drive the browser ({exc}); "
+              "falling back to one-shot screenshots", file=sys.stderr)
+        return None
+
+
 def screenshot(browser: str, url: str, dest: Path, dark: bool = False) -> bool:
     """Render ``url`` in headless Chrome and write a PNG to ``dest``.
 
-    ``--virtual-time-budget`` fast-forwards the page's timers so fonts, lazy
-    images and entry animations have settled before the frame is taken. With
-    ``dark``, the page is rendered as it would appear to a visitor whose system
-    is set to dark: this only answers the prefers-color-scheme query, so a page
-    with no dark styles of its own comes out unchanged rather than machine-
-    darkened.
+    The fallback path, used when the browser cannot be driven. ``--virtual-
+    time-budget`` fast-forwards the page's timers so fonts, lazy images and
+    entry animations have settled before the frame is taken. With ``dark``, the
+    page is rendered as it would appear to a visitor whose system is set to
+    dark: this only answers the prefers-color-scheme query, so a page with no
+    dark styles of its own comes out unchanged rather than machine-darkened.
     """
     dest.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory() as profile:
@@ -316,6 +511,7 @@ def capture(
     browser: Optional[str] = None,
     refresh: bool = False,
     url_prefix: Optional[str] = None,
+    settle: float = DEFAULT_SETTLE,
 ) -> list:
     """Give every repository without a preview one, captured from its own page.
 
@@ -333,6 +529,9 @@ def capture(
     executable = find_browser(browser)
     if not executable:
         print("warning: no Chrome/Chromium found; skipping screenshots", file=sys.stderr)
+    # One browser serves every capture: starting it per screenshot cost more
+    # than all the rendering put together.
+    session = open_session(executable)
 
     result = []
     for repo in repos:
@@ -343,7 +542,7 @@ def capture(
         if is_current(entry, repo, out_dir):
             manifest[repo.name] = entry
         else:
-            entry = _capture_one(repo, out_dir, executable)
+            entry = _capture_one(repo, out_dir, executable, session, settle)
             if entry:
                 manifest[repo.name] = entry
         current = manifest.get(repo.name)
@@ -364,10 +563,28 @@ def capture(
             print(f"removed stale preview {name}")
     if manifest or manifest_path.exists():
         save_manifest(manifest_path, manifest)
+    if session:
+        session.close()
     return result
 
 
-def _capture_one(repo, out_dir: Path, browser: str) -> Optional[dict]:
+def shoot(
+    executable: str,
+    session: Optional[Session],
+    url: str,
+    dest: Path,
+    dark: bool = False,
+    settle: float = DEFAULT_SETTLE,
+) -> bool:
+    """Take one screenshot, driving the browser where that is possible."""
+    if session and session.alive and session.capture(url, dest, dark, settle):
+        return True
+    return bool(executable) and screenshot(executable, url, dest, dark=dark)
+
+
+def _capture_one(repo, out_dir: Path, browser: str,
+                 session: Optional[Session] = None,
+                 settle: float = DEFAULT_SETTLE) -> Optional[dict]:
     """Capture one project: embedded animation first, screenshot second."""
     stem = safe_stem(repo.name)
     page = fetch_page(repo.homepage)
@@ -378,20 +595,21 @@ def _capture_one(repo, out_dir: Path, browser: str) -> Optional[dict]:
             if download_image(animation, out_dir / filename):
                 print(f"captured {repo.name} from {animation}")
                 return manifest_entry(repo, filename, animation)
-    if not browser or not page:
+    if (not browser and not session) or not page:
         # No page at all means the site is gone; screenshotting it would only
         # produce an error page.
         return None
     filename = f"{stem}.png"
-    if not screenshot(browser, repo.homepage, out_dir / filename):
+    if not shoot(browser, session, repo.homepage, out_dir / filename, settle=settle):
         return None
     print(f"captured {repo.name} from a screenshot of {repo.homepage}")
-    return manifest_entry(
-        repo, filename, "screenshot", dark=_capture_dark(repo, out_dir, browser, stem)
-    )
+    dark = _capture_dark(repo, out_dir, browser, stem, session, settle)
+    return manifest_entry(repo, filename, "screenshot", dark=dark)
 
 
-def _capture_dark(repo, out_dir: Path, browser: str, stem: str) -> str:
+def _capture_dark(repo, out_dir: Path, browser: str, stem: str,
+                  session: Optional[Session] = None,
+                  settle: float = DEFAULT_SETTLE) -> str:
     """Capture the dark-mode view, and return its filename — or '' if it matches.
 
     Most project pages have no dark styles, so the two captures come out
@@ -400,7 +618,7 @@ def _capture_dark(repo, out_dir: Path, browser: str, stem: str) -> str:
     """
     dark_name = f"{stem}{DARK_SUFFIX}.png"
     dark_path = out_dir / dark_name
-    if not screenshot(browser, repo.homepage, dark_path, dark=True):
+    if not shoot(browser, session, repo.homepage, dark_path, dark=True, settle=settle):
         return ""
     try:
         same = dark_path.read_bytes() == (out_dir / f"{stem}.png").read_bytes()

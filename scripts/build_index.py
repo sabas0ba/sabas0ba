@@ -921,6 +921,7 @@ def build(
     preview_dir: Optional[Path] = None,
     browser: Optional[str] = None,
     refresh: bool = False,
+    settle: float = capture_previews.DEFAULT_SETTLE,
 ) -> list[Repo]:
     """Fetch, transform, and write both outputs. Returns the sorted repo list.
 
@@ -942,6 +943,7 @@ def build(
             directory,
             browser=browser,
             refresh=refresh,
+            settle=settle,
             url_prefix=_relative_prefix(directory, html_path.parent),
         )
     profile = fetch_profile(user, token=token)
@@ -1016,6 +1018,13 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         help="Chrome/Chromium executable used for screenshots (default: autodetect)",
     )
     parser.add_argument(
+        "--settle",
+        type=float,
+        default=capture_previews.DEFAULT_SETTLE,
+        help="Seconds to let a page run after loading before capturing it "
+        f"(default: {capture_previews.DEFAULT_SETTLE})",
+    )
+    parser.add_argument(
         "--refresh",
         action="store_true",
         help="Re-capture every card image, ignoring the manifest's freshness check",
@@ -1034,6 +1043,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             preview_dir=args.preview_dir,
             browser=args.browser,
             refresh=args.refresh,
+            settle=args.settle,
         )
     except (urllib.error.URLError, ValueError, OSError) as exc:
         print(f"error: {exc}", file=sys.stderr)
