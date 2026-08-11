@@ -82,7 +82,7 @@ jobs:
           OWNER: ${{ github.repository_owner }}
           REFRESH: ${{ inputs.refresh }}
         run: |
-          args=(--tagline "mochimochi engineer.")
+          args=(--tagline "mochimochi engineer")
           if [ "$REFRESH" = "true" ]; then
             args+=(--refresh)
           fi
