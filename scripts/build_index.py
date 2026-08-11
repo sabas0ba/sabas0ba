@@ -427,7 +427,8 @@ PAGE_TEMPLATE = Template("""\
     .meta .date { margin-left: auto; white-space: nowrap; }
 
     footer { margin-top: 2.5rem; color: var(--muted); font-size: 0.78rem; }
-    footer::before { content: "// "; }
+    footer p { margin: 0; }
+    footer .built::before { content: "// "; }
   </style>
 </head>
 <body>
@@ -442,7 +443,9 @@ $tagline_html$profile_html    </div>
 $body
     </div>
   </main>
-  <footer>generated at $generated_at</footer>
+  <footer>
+$copyright_html    <p class="built">generated at $generated_at</p>
+  </footer>
 </body>
 </html>
 """)
@@ -507,13 +510,15 @@ def render_html(
     owner: str = "",
     tagline: str = "",
     profile: Optional[Profile] = None,
+    year: str = "",
 ) -> str:
     """Render the projects as a standalone portfolio page.
 
     ``owner`` names the page heading and adds a link to the GitHub profile;
     ``tagline`` is the one-line self-description shown under it, defaulting to
     the account's bio; ``profile`` supplies the avatar (and a display name, when
-    the account sets one). All dynamic values are HTML-escaped.
+    the account sets one); ``year`` adds a copyright line naming the same person
+    as the heading. All dynamic values are HTML-escaped.
     """
     body = "\n".join(_render_card(r) for r in repos) if repos else EMPTY_STATE
     heading = html.escape((profile.display_name if profile else "") or owner)
@@ -543,6 +548,11 @@ def render_html(
         ),
         section_label=f"works ({len(repos)})" if repos else "works",
         body=body,
+        copyright_html=(
+            f'    <p class="copyright">© {html.escape(year)} {heading}</p>\n'
+            if year and heading
+            else ""
+        ),
         generated_at=html.escape(generated_at),
     )
 
@@ -674,7 +684,8 @@ def build(
     ``capture_previews``), and finally the monogram tile drawn by the page
     itself.
     """
-    generated_at = (now or datetime.now(timezone.utc)).strftime("%Y-%m-%d %H:%M UTC")
+    timestamp = now or datetime.now(timezone.utc)
+    generated_at = timestamp.strftime("%Y-%m-%d %H:%M UTC")
     raw = fetch_repositories(user, token=token)
     repos = sort_repositories(parse_repositories(raw))
     if previews:
@@ -697,7 +708,14 @@ def build(
 
     html_path.parent.mkdir(parents=True, exist_ok=True)
     html_path.write_text(
-        render_html(repos, generated_at, owner=user, tagline=tagline, profile=profile),
+        render_html(
+            repos,
+            generated_at,
+            owner=user,
+            tagline=tagline,
+            profile=profile,
+            year=timestamp.strftime("%Y"),
+        ),
         encoding="utf-8",
     )
     return repos

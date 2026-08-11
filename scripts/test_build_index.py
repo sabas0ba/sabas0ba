@@ -410,6 +410,18 @@ class RenderHtmlTest(unittest.TestCase):
         out = bi.render_html([], "2025-06-01 12:00 UTC")
         self.assertIn("2025-06-01 12:00 UTC", out)
 
+    def test_renders_copyright_for_the_owner(self):
+        out = bi.render_html([], "t", owner="someone", year="2026")
+        self.assertIn('<p class="copyright">© 2026 someone</p>', out)
+
+    def test_copyright_names_the_display_name(self):
+        profile = bi.Profile(login="someone", name="Some One")
+        out = bi.render_html([], "t", owner="someone", year="2026", profile=profile)
+        self.assertIn('<p class="copyright">© 2026 Some One</p>', out)
+
+    def test_omits_copyright_without_a_year(self):
+        self.assertNotIn('class="copyright"', bi.render_html([], "t", owner="someone"))
+
 
 class FetchPreviewTest(unittest.TestCase):
     def test_returns_first_directory_that_yields_a_match(self):
@@ -499,7 +511,10 @@ class BuildOrchestrationTest(unittest.TestCase):
                 readme_text.index("new"), readme_text.index("old")
             )
             self.assertTrue(html_out.exists())
-            self.assertIn("new.example", html_out.read_text(encoding="utf-8"))
+            page = html_out.read_text(encoding="utf-8")
+            self.assertIn("new.example", page)
+            # the copyright year comes from the build timestamp
+            self.assertIn("© 2025 someone", page)
 
     def test_build_passes_token_to_fetch(self):
         with tempfile.TemporaryDirectory() as d:
