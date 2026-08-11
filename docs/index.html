@@ -178,6 +178,7 @@
     }
 
     .shot { display: block; background: var(--panel-hi); overflow: hidden; }
+    .shot picture { display: block; }
     .shot img {
       display: block;
       width: 100%;
@@ -278,7 +279,7 @@
     <h2 class="section">works (<span class="count">10</span>)</h2>
     <div class="grid">
       <article class="card" style="--i: 0" data-tags="build build-tool build-tools c cpp">
-        <a class="shot" href="https://sabas0ba.github.io/dowel/"><img src="previews/dowel.png" alt="preview of dowel" loading="lazy" decoding="async"></a>
+        <a class="shot" href="https://sabas0ba.github.io/dowel/"><picture><source srcset="previews/dowel-dark.png" media="(prefers-color-scheme: dark)"><img src="previews/dowel.png" alt="preview of dowel" loading="lazy" decoding="async"></picture></a>
         <div class="body">
           <h3><a href="https://sabas0ba.github.io/dowel/">dowel</a></h3>
           <p class="desc">A build system for C and C++ with incremental manifest evaluation and typed values that carry provenance</p>
@@ -286,7 +287,16 @@
           <p class="meta"><a href="https://sabas0ba.github.io/dowel/">live</a><span class="sep" aria-hidden="true">·</span><a href="https://github.com/sabas0ba/dowel">source</a><span class="date">2026-08-11</span></p>
         </div>
       </article>
-      <article class="card" style="--i: 1" data-tags="bitmap-font embedded font web">
+      <article class="card" style="--i: 1" data-tags="cli editor gui">
+        <a class="shot" href="https://sabas0ba.github.io/deco/"><picture><source srcset="previews/deco-dark.png" media="(prefers-color-scheme: dark)"><img src="previews/deco.png" alt="preview of deco" loading="lazy" decoding="async"></picture></a>
+        <div class="body">
+          <h3><a href="https://sabas0ba.github.io/deco/">deco</a></h3>
+          <p class="desc">A lightweight, VS Code-compatible text editor written in Rust. No Electron.</p>
+          <p class="card-tags"><button type="button" class="tag" data-tag="cli" aria-pressed="false">cli</button><button type="button" class="tag" data-tag="editor" aria-pressed="false">editor</button><button type="button" class="tag" data-tag="gui" aria-pressed="false">gui</button></p>
+          <p class="meta"><a href="https://sabas0ba.github.io/deco/">live</a><span class="sep" aria-hidden="true">·</span><a href="https://github.com/sabas0ba/deco">source</a><span class="date">2026-08-11</span></p>
+        </div>
+      </article>
+      <article class="card" style="--i: 2" data-tags="bitmap-font embedded font web">
         <a class="shot" href="https://sabas0ba.github.io/font8x16-workbench/"><img src="previews/font8x16-workbench.png" alt="preview of font8x16-workbench" loading="lazy" decoding="async"></a>
         <div class="body">
           <h3><a href="https://sabas0ba.github.io/font8x16-workbench/">font8x16-workbench</a></h3>
@@ -295,7 +305,7 @@
           <p class="meta"><a href="https://sabas0ba.github.io/font8x16-workbench/">live</a><span class="sep" aria-hidden="true">·</span><a href="https://github.com/sabas0ba/font8x16-workbench">source</a><span class="date">2026-08-11</span></p>
         </div>
       </article>
-      <article class="card" style="--i: 2" data-tags="bootstrap compiler rv32i selfhosted">
+      <article class="card" style="--i: 3" data-tags="bootstrap compiler rv32i selfhosted">
         <a class="shot" href="https://sabas0ba.github.io/stone/"><img src="previews/stone.png" alt="preview of stone" loading="lazy" decoding="async"></a>
         <div class="body">
           <h3><a href="https://sabas0ba.github.io/stone/">stone</a></h3>
@@ -304,17 +314,8 @@
           <p class="meta"><a href="https://sabas0ba.github.io/stone/">live</a><span class="sep" aria-hidden="true">·</span><a href="https://github.com/sabas0ba/stone">source</a><span class="date">2026-08-11</span></p>
         </div>
       </article>
-      <article class="card" style="--i: 3" data-tags="cli editor gui">
-        <a class="shot" href="https://sabas0ba.github.io/deco/"><img src="previews/deco.png" alt="preview of deco" loading="lazy" decoding="async"></a>
-        <div class="body">
-          <h3><a href="https://sabas0ba.github.io/deco/">deco</a></h3>
-          <p class="desc">A lightweight, VS Code-compatible text editor written in Rust. No Electron.</p>
-          <p class="card-tags"><button type="button" class="tag" data-tag="cli" aria-pressed="false">cli</button><button type="button" class="tag" data-tag="editor" aria-pressed="false">editor</button><button type="button" class="tag" data-tag="gui" aria-pressed="false">gui</button></p>
-          <p class="meta"><a href="https://sabas0ba.github.io/deco/">live</a><span class="sep" aria-hidden="true">·</span><a href="https://github.com/sabas0ba/deco">source</a><span class="date">2026-08-11</span></p>
-        </div>
-      </article>
       <article class="card" style="--i: 4" data-tags="build build-tool c cpp examples">
-        <a class="shot" href="https://sabas0ba.github.io/dowel_examples/"><img src="previews/dowel_examples.png" alt="preview of dowel_examples" loading="lazy" decoding="async"></a>
+        <a class="shot" href="https://sabas0ba.github.io/dowel_examples/"><picture><source srcset="previews/dowel_examples-dark.png" media="(prefers-color-scheme: dark)"><img src="previews/dowel_examples.png" alt="preview of dowel_examples" loading="lazy" decoding="async"></picture></a>
         <div class="body">
           <h3><a href="https://sabas0ba.github.io/dowel_examples/">dowel_examples</a></h3>
           <p class="desc">examples for sabas0ba/dowel</p>
@@ -323,7 +324,7 @@
         </div>
       </article>
       <article class="card" style="--i: 5" data-tags="3d planetarium">
-        <a class="shot" href="https://sabas0ba.github.io/hoshizora/"><img src="previews/hoshizora.png" alt="preview of hoshizora" loading="lazy" decoding="async"></a>
+        <a class="shot" href="https://sabas0ba.github.io/hoshizora/"><picture><source srcset="previews/hoshizora-dark.png" media="(prefers-color-scheme: dark)"><img src="previews/hoshizora.png" alt="preview of hoshizora" loading="lazy" decoding="async"></picture></a>
         <div class="body">
           <h3><a href="https://sabas0ba.github.io/hoshizora/">hoshizora</a></h3>
           <p class="desc">Night sky simulator for any date, time, and location.</p>
@@ -350,7 +351,7 @@
         </div>
       </article>
       <article class="card" style="--i: 8" data-tags="fpga hdl tangnano9k veryl">
-        <a class="shot" href="https://sabas0ba.github.io/hello_veryl/"><img src="previews/hello_veryl.png" alt="preview of hello_veryl" loading="lazy" decoding="async"></a>
+        <a class="shot" href="https://sabas0ba.github.io/hello_veryl/"><picture><source srcset="previews/hello_veryl-dark.png" media="(prefers-color-scheme: dark)"><img src="previews/hello_veryl.png" alt="preview of hello_veryl" loading="lazy" decoding="async"></picture></a>
         <div class="body">
           <h3><a href="https://sabas0ba.github.io/hello_veryl/">hello_veryl</a></h3>
           <p class="desc">Veryl + open-source FPGA toolchain playground for Tang Nano 9K (GW1NR-9C)</p>
@@ -371,7 +372,7 @@
   </main>
   <footer>
     <p class="copyright">© 2026 sabas0ba</p>
-    <p class="built">generated at 2026-08-11 08:03 UTC</p>
+    <p class="built">generated at 2026-08-11 09:06 UTC</p>
   </footer>
   <script>
     // Filter the grid by tag. One listener on the document covers both the bar
