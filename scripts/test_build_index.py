@@ -7,6 +7,7 @@ orchestration path with a fake fetch. Run with: python -m unittest discover -s s
 
 from __future__ import annotations
 
+import re
 import tempfile
 import unittest
 import urllib.error
@@ -294,6 +295,32 @@ class TileTest(unittest.TestCase):
         self.assertTrue(0 <= bi._hue("dowel") < 360)
 
 
+class AccentTest(unittest.TestCase):
+    """The accent hue is rolled per visit; both themes must follow the same hue."""
+
+    def setUp(self):
+        self.page = bi.render_html([], "t")
+
+    def test_rolls_a_hue_on_load(self):
+        self.assertIn('setProperty("--ha", Math.floor(Math.random() * 360))', self.page)
+
+    def test_both_themes_read_the_rolled_hue(self):
+        accents = re.findall(r"--accent: oklch\(([\d.]+) ([\d.]+) var\(--ha, \d+\)\);",
+                             self.page)
+        self.assertEqual(len(accents), 2)
+        dark, light = accents
+        # the dark theme's accent is the lighter of the two, and neither is
+        # near-white or near-black, which would vanish into a background
+        self.assertGreater(float(dark[0]), float(light[0]))
+        for lightness, chroma in accents:
+            self.assertTrue(0.3 < float(lightness) < 0.9)
+            self.assertGreater(float(chroma), 0.1)
+
+    def test_keeps_a_hex_fallback_before_each_oklch(self):
+        for hex_fallback in ("--accent: #6cb6ff;", "--accent: #0a58b8;"):
+            self.assertIn(hex_fallback, self.page)
+
+
 class RenderHtmlTest(unittest.TestCase):
     def test_escapes_dynamic_values(self):
         repos = [
@@ -320,7 +347,7 @@ class RenderHtmlTest(unittest.TestCase):
             )
         ]
         out = bi.render_html(repos, "t")
-        self.assertIn('<article class="card">', out)
+        self.assertIn('<article class="card" style="--i: 0">', out)
         self.assertIn('<h3><a href="https://u.github.io/proj/">proj</a></h3>', out)
         self.assertIn('<a href="https://github.com/u/proj">source</a>', out)
         self.assertIn('<p class="desc">a tool</p>', out)
@@ -397,6 +424,15 @@ class RenderHtmlTest(unittest.TestCase):
         self.assertNotIn('class="tagline"', out)
         self.assertNotIn('class="profile"', out)
         self.assertIn("<h1>Published Repositories</h1>", out)
+
+    def test_cards_carry_their_position_for_the_entrance_delay(self):
+        repos = [
+            bi.Repo(n, "", f"https://u.github.io/{n}/", "2025-01-01T00:00:00Z")
+            for n in ("a", "b", "c")
+        ]
+        out = bi.render_html(repos, "t")
+        positions = re.findall(r'<article class="card" style="--i: (\d+)">', out)
+        self.assertEqual(positions, ["0", "1", "2"])
 
     def test_section_label_counts_projects(self):
         repos = [bi.Repo("proj", "", "https://u.github.io/proj/", "2025-01-01T00:00:00Z")]
