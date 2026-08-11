@@ -3,7 +3,7 @@
     "dark": "deco-dark.png",
     "file": "deco.png",
     "source": "screenshot",
-    "updated_at": "2026-08-11T08:16:04Z"
+    "updated_at": "2026-08-11T09:35:31Z"
   },
   "dowel": {
     "dark": "dowel-dark.png",
@@ -30,16 +30,16 @@
     "updated_at": "2026-07-23T13:44:11Z"
   },
   "hoshizora": {
-    "dark": "hoshizora-dark.png",
+    "dark": "",
     "file": "hoshizora.png",
     "source": "screenshot",
-    "updated_at": "2026-08-11T01:17:50Z"
+    "updated_at": "2026-08-11T09:25:19Z"
   },
   "kicad_skills": {
-    "dark": "",
+    "dark": "kicad_skills-dark.png",
     "file": "kicad_skills.png",
     "source": "screenshot",
-    "updated_at": "2026-08-10T13:26:13Z"
+    "updated_at": "2026-08-11T09:45:30Z"
   },
   "retrix": {
     "dark": "",
@@ -57,6 +57,6 @@
     "dark": "",
     "file": "stone.png",
     "source": "screenshot",
-    "updated_at": "2026-08-11T07:49:12Z"
+    "updated_at": "2026-08-11T09:15:28Z"
   }
 }
