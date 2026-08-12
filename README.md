@@ -3,9 +3,13 @@
 mochimochi engineer. here are my hobby works:
 
 <!-- INDEX:START -->
-- **[deco](https://github.com/sabas0ba/deco)** · [pages](https://sabas0ba.github.io/deco/) · <sub>2026-08-11</sub><br>
+- **[rpi-provision](https://github.com/sabas0ba/rpi-provision)** · [pages](https://sabas0ba.github.io/rpi-provision/) · <sub>2026-08-12</sub><br>
+  Declarative first-boot provisioning for Raspberry Pi 5 SD cards.
+- **[deco](https://github.com/sabas0ba/deco)** · [pages](https://sabas0ba.github.io/deco/) · <sub>2026-08-12</sub><br>
   A lightweight, VS Code-compatible text editor written in Rust. No Electron.
-- **[dowel](https://github.com/sabas0ba/dowel)** · [pages](https://sabas0ba.github.io/dowel/) · <sub>2026-08-11</sub><br>
+- **[dowel_examples](https://github.com/sabas0ba/dowel_examples)** · [pages](https://sabas0ba.github.io/dowel_examples/) · <sub>2026-08-12</sub><br>
+  examples for sabas0ba/dowel
+- **[dowel](https://github.com/sabas0ba/dowel)** · [pages](https://sabas0ba.github.io/dowel/) · <sub>2026-08-12</sub><br>
   A build system for C and C++ with incremental manifest evaluation and typed values that carry provenance
 - **[stone](https://github.com/sabas0ba/stone)** · [pages](https://sabas0ba.github.io/stone/) · <sub>2026-08-11</sub><br>
   Compiler bootstrap from hand-encoded RV32 binary on QEMU
@@ -13,8 +17,6 @@ mochimochi engineer. here are my hobby works:
   Night sky simulator for any date, time, and location.
 - **[font8x16-workbench](https://github.com/sabas0ba/font8x16-workbench)** · [pages](https://sabas0ba.github.io/font8x16-workbench/) · <sub>2026-08-11</sub><br>
   Single-file browser tool to edit, compare, and export 8x16 1bpp bitmap fonts as $readmemh HEX for FPGA text-mode font ROMs
-- **[dowel_examples](https://github.com/sabas0ba/dowel_examples)** · [pages](https://sabas0ba.github.io/dowel_examples/) · <sub>2026-08-11</sub><br>
-  examples for sabas0ba/dowel
 - **[kicad_skills](https://github.com/sabas0ba/kicad_skills)** · [pages](https://sabas0ba.github.io/kicad_skills/) · <sub>2026-08-11</sub><br>
   Container-based toolkit for circuit design: datasheets, SPICE simulation and KiCad review
 - **[rv32mbt](https://github.com/sabas0ba/rv32mbt)** · [pages](https://sabas0ba.github.io/rv32mbt/) · <sub>2026-07-30</sub><br>

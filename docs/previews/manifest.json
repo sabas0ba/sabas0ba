@@ -3,19 +3,19 @@
     "dark": "deco-dark.png",
     "file": "deco.png",
     "source": "screenshot",
-    "updated_at": "2026-08-11T13:25:32Z"
+    "updated_at": "2026-08-12T00:11:51Z"
   },
   "dowel": {
     "dark": "dowel-dark.png",
     "file": "dowel.png",
     "source": "screenshot",
-    "updated_at": "2026-08-11T13:02:34Z"
+    "updated_at": "2026-08-12T00:09:22Z"
   },
   "dowel_examples": {
     "dark": "dowel_examples-dark.png",
     "file": "dowel_examples.png",
     "source": "screenshot",
-    "updated_at": "2026-08-11T09:58:36Z"
+    "updated_at": "2026-08-12T00:10:39Z"
   },
   "font8x16-workbench": {
     "dark": "font8x16-workbench-dark.png",
@@ -41,6 +41,12 @@
     "source": "screenshot",
     "updated_at": "2026-07-19T16:08:05Z"
   },
+  "rpi-provision": {
+    "dark": "rpi-provision-dark.png",
+    "file": "rpi-provision.png",
+    "source": "screenshot",
+    "updated_at": "2026-08-12T00:18:17Z"
+  },
   "rv32mbt": {
     "dark": "",
     "file": "rv32mbt.png",
@@ -51,6 +57,6 @@
     "dark": "",
     "file": "stone.png",
     "source": "screenshot",
-    "updated_at": "2026-08-11T12:32:02Z"
+    "updated_at": "2026-08-11T23:28:55Z"
   }
 }
