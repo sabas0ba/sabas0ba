@@ -3,12 +3,12 @@
 mochimochi engineer. here are my hobby works:
 
 <!-- INDEX:START -->
+- **[dowel](https://github.com/sabas0ba/dowel)** · [pages](https://sabas0ba.github.io/dowel/) · <sub>2026-08-17</sub><br>
+  A build system for C and C++ with incremental manifest evaluation and typed values that carry provenance
+- **[deco](https://github.com/sabas0ba/deco)** · [pages](https://sabas0ba.github.io/deco/) · <sub>2026-08-17</sub><br>
+  A lightweight, VS Code-compatible text editor written in Rust. No Electron.
 - **[text-watermark-sample](https://github.com/sabas0ba/text-watermark-sample)** · [pages](https://sabas0ba.github.io/text-watermark-sample/) · <sub>2026-08-16</sub><br>
   Text watermarking by word choice
-- **[dowel](https://github.com/sabas0ba/dowel)** · [pages](https://sabas0ba.github.io/dowel/) · <sub>2026-08-15</sub><br>
-  A build system for C and C++ with incremental manifest evaluation and typed values that carry provenance
-- **[deco](https://github.com/sabas0ba/deco)** · [pages](https://sabas0ba.github.io/deco/) · <sub>2026-08-15</sub><br>
-  A lightweight, VS Code-compatible text editor written in Rust. No Electron.
 - **[dowel_examples](https://github.com/sabas0ba/dowel_examples)** · [pages](https://sabas0ba.github.io/dowel_examples/) · <sub>2026-08-15</sub><br>
   examples for sabas0ba/dowel
 - **[stone](https://github.com/sabas0ba/stone)** · [pages](https://sabas0ba.github.io/stone/) · <sub>2026-08-14</sub><br>
