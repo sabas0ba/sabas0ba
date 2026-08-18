@@ -3,13 +3,13 @@
     "dark": "deco-dark.png",
     "file": "deco.png",
     "source": "screenshot",
-    "updated_at": "2026-08-17T00:36:02Z"
+    "updated_at": "2026-08-18T10:49:47Z"
   },
   "dowel": {
     "dark": "dowel-dark.png",
     "file": "dowel.png",
     "source": "screenshot",
-    "updated_at": "2026-08-17T00:43:13Z"
+    "updated_at": "2026-08-18T03:58:12Z"
   },
   "dowel_examples": {
     "dark": "dowel_examples-dark.png",
@@ -52,6 +52,12 @@
     "file": "rv32mbt.png",
     "source": "screenshot",
     "updated_at": "2026-07-30T17:25:48Z"
+  },
+  "stl-viewer": {
+    "dark": "",
+    "file": "stl-viewer.png",
+    "source": "screenshot",
+    "updated_at": "2026-08-18T14:09:13Z"
   },
   "stone": {
     "dark": "",
