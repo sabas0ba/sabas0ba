@@ -3,8 +3,12 @@
 mochimochi engineer. here are my hobby works:
 
 <!-- INDEX:START -->
-- **[vrutils](https://github.com/sabas0ba/vrutils)** · [pages](https://sabas0ba.github.io/vrutils/) · <sub>2026-08-23</sub><br>
-  Utils for SteamVR
+- **[vrc_sabaprops](https://github.com/sabas0ba/vrc_sabaprops)** · [pages](https://sabas0ba.github.io/vrc_sabaprops/) · <sub>2026-08-23</sub><br>
+  World props for VRChat
+- **[vrc_sabashader](https://github.com/sabas0ba/vrc_sabashader)** · [pages](https://sabas0ba.github.io/vrc_sabashader/) · <sub>2026-08-23</sub><br>
+  Shader assets for VRChat
+- **[hello_veryl](https://github.com/sabas0ba/hello_veryl)** · [pages](https://sabas0ba.github.io/hello_veryl/) · <sub>2026-08-23</sub><br>
+  Veryl + open-source FPGA toolchain playground for Tang Nano 9K (GW1NR-9C)
 - **[stone](https://github.com/sabas0ba/stone)** · [pages](https://sabas0ba.github.io/stone/) · <sub>2026-08-22</sub><br>
   Compiler bootstrap from hand-encoded RV32 binary on QEMU
 - **[dowel](https://github.com/sabas0ba/dowel)** · [pages](https://sabas0ba.github.io/dowel/) · <sub>2026-08-22</sub><br>
@@ -27,8 +31,6 @@ mochimochi engineer. here are my hobby works:
   Single-file browser tool to edit, compare, and export 8x16 1bpp bitmap fonts as $readmemh HEX for FPGA text-mode font ROMs
 - **[rv32mbt](https://github.com/sabas0ba/rv32mbt)** · [pages](https://sabas0ba.github.io/rv32mbt/) · <sub>2026-07-30</sub><br>
   RV32IMAC emulator written in MoonBit. It boots nommu Linux 6.12.
-- **[hello_veryl](https://github.com/sabas0ba/hello_veryl)** · [pages](https://sabas0ba.github.io/hello_veryl/) · <sub>2026-07-23</sub><br>
-  Veryl + open-source FPGA toolchain playground for Tang Nano 9K (GW1NR-9C)
 - **[retrix](https://github.com/sabas0ba/retrix)** · [pages](https://sabas0ba.github.io/retrix/) · <sub>2026-07-19</sub><br>
   Client-side retro pixel-art image converter - zero dependencies, vanilla JS.
 <!-- INDEX:END -->
