@@ -3,19 +3,19 @@
     "dark": "deco-dark.png",
     "file": "deco.png",
     "source": "screenshot",
-    "updated_at": "2026-08-18T10:49:47Z"
+    "updated_at": "2026-08-22T02:53:31Z"
   },
   "dowel": {
     "dark": "dowel-dark.png",
     "file": "dowel.png",
     "source": "screenshot",
-    "updated_at": "2026-08-18T03:58:12Z"
+    "updated_at": "2026-08-22T04:13:10Z"
   },
   "dowel_examples": {
     "dark": "dowel_examples-dark.png",
     "file": "dowel_examples.png",
     "source": "screenshot",
-    "updated_at": "2026-08-15T05:06:36Z"
+    "updated_at": "2026-08-21T08:04:32Z"
   },
   "font8x16-workbench": {
     "dark": "font8x16-workbench-dark.png",
@@ -57,18 +57,24 @@
     "dark": "",
     "file": "stl-viewer.png",
     "source": "screenshot",
-    "updated_at": "2026-08-18T14:09:13Z"
+    "updated_at": "2026-08-20T00:08:57Z"
   },
   "stone": {
     "dark": "",
     "file": "stone.png",
     "source": "screenshot",
-    "updated_at": "2026-08-14T00:51:19Z"
+    "updated_at": "2026-08-22T15:08:04Z"
   },
   "text-watermark-sample": {
     "dark": "text-watermark-sample-dark.png",
     "file": "text-watermark-sample.png",
     "source": "screenshot",
     "updated_at": "2026-08-16T22:24:29Z"
+  },
+  "vrutils": {
+    "dark": "",
+    "file": "vrutils.png",
+    "source": "screenshot",
+    "updated_at": "2026-08-23T04:56:41Z"
   }
 }
