@@ -5,6 +5,12 @@
     "source": "screenshot",
     "updated_at": "2026-08-22T02:53:31Z"
   },
+  "dotfiles": {
+    "dark": "",
+    "file": "dotfiles.png",
+    "source": "screenshot",
+    "updated_at": "2026-08-23T09:39:34Z"
+  },
   "dowel": {
     "dark": "dowel-dark.png",
     "file": "dowel.png",
@@ -27,7 +33,7 @@
     "dark": "hello_veryl-dark.png",
     "file": "hello_veryl.png",
     "source": "screenshot",
-    "updated_at": "2026-08-23T07:55:15Z"
+    "updated_at": "2026-08-23T09:23:55Z"
   },
   "kicad_skills": {
     "dark": "kicad_skills-dark.png",

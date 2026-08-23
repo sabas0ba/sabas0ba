@@ -3,12 +3,14 @@
 mochimochi engineer. here are my hobby works:
 
 <!-- INDEX:START -->
+- **[dotfiles](https://github.com/sabas0ba/dotfiles)** · [pages](https://sabas0ba.github.io/dotfiles/) · <sub>2026-08-23</sub><br>
+  my environment
+- **[hello_veryl](https://github.com/sabas0ba/hello_veryl)** · [pages](https://sabas0ba.github.io/hello_veryl/) · <sub>2026-08-23</sub><br>
+  Veryl + open-source FPGA toolchain playground for Tang Nano 9K (GW1NR-9C)
 - **[vrc_sabaprops](https://github.com/sabas0ba/vrc_sabaprops)** · [pages](https://sabas0ba.github.io/vrc_sabaprops/) · <sub>2026-08-23</sub><br>
   World props for VRChat
 - **[vrc_sabashader](https://github.com/sabas0ba/vrc_sabashader)** · [pages](https://sabas0ba.github.io/vrc_sabashader/) · <sub>2026-08-23</sub><br>
   Shader assets for VRChat
-- **[hello_veryl](https://github.com/sabas0ba/hello_veryl)** · [pages](https://sabas0ba.github.io/hello_veryl/) · <sub>2026-08-23</sub><br>
-  Veryl + open-source FPGA toolchain playground for Tang Nano 9K (GW1NR-9C)
 - **[stone](https://github.com/sabas0ba/stone)** · [pages](https://sabas0ba.github.io/stone/) · <sub>2026-08-22</sub><br>
   Compiler bootstrap from hand-encoded RV32 binary on QEMU
 - **[dowel](https://github.com/sabas0ba/dowel)** · [pages](https://sabas0ba.github.io/dowel/) · <sub>2026-08-22</sub><br>
