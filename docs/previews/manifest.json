@@ -6,16 +6,16 @@
     "updated_at": "2026-08-22T02:53:31Z"
   },
   "dotfiles": {
-    "dark": "",
+    "dark": "dotfiles-dark.png",
     "file": "dotfiles.png",
     "source": "screenshot",
-    "updated_at": "2026-08-23T09:39:34Z"
+    "updated_at": "2026-08-23T15:32:38Z"
   },
   "dowel": {
     "dark": "dowel-dark.png",
     "file": "dowel.png",
     "source": "screenshot",
-    "updated_at": "2026-08-22T04:13:10Z"
+    "updated_at": "2026-08-23T17:01:34Z"
   },
   "dowel_examples": {
     "dark": "dowel_examples-dark.png",
@@ -33,13 +33,13 @@
     "dark": "hello_veryl-dark.png",
     "file": "hello_veryl.png",
     "source": "screenshot",
-    "updated_at": "2026-08-23T09:23:55Z"
+    "updated_at": "2026-08-23T17:00:25Z"
   },
   "kicad_skills": {
     "dark": "kicad_skills-dark.png",
     "file": "kicad_skills.png",
     "source": "screenshot",
-    "updated_at": "2026-08-13T03:45:35Z"
+    "updated_at": "2026-08-23T14:37:48Z"
   },
   "retrix": {
     "dark": "",
@@ -69,12 +69,24 @@
     "dark": "",
     "file": "stone.png",
     "source": "screenshot",
-    "updated_at": "2026-08-22T15:08:04Z"
+    "updated_at": "2026-08-23T16:12:59Z"
   },
   "text-watermark-sample": {
     "dark": "text-watermark-sample-dark.png",
     "file": "text-watermark-sample.png",
     "source": "screenshot",
     "updated_at": "2026-08-16T22:24:29Z"
+  },
+  "vrc_sabaprops": {
+    "dark": "vrc_sabaprops-dark.png",
+    "file": "vrc_sabaprops.png",
+    "source": "screenshot",
+    "updated_at": "2026-08-23T13:52:34Z"
+  },
+  "vrc_sabashader": {
+    "dark": "",
+    "file": "vrc_sabashader.png",
+    "source": "screenshot",
+    "updated_at": "2026-08-23T16:12:39Z"
   }
 }
