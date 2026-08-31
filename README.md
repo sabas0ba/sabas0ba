@@ -3,26 +3,32 @@
 mochimochi engineer. here are my hobby works:
 
 <!-- INDEX:START -->
+- **[dotfiles](https://github.com/sabas0ba/dotfiles)** · [pages](https://sabas0ba.github.io/dotfiles/) · <sub>2026-08-31</sub><br>
+  Reproducible Nix development environment: one pinned tool list shared by the dev shell, container image, and WSL.
+- **[tig](https://github.com/sabas0ba/tig)** · [pages](https://sabas0ba.github.io/tig/) · <sub>2026-08-31</sub><br>
+  Small footprint git client written in no_std Rust
+- **[stl-viewer](https://github.com/sabas0ba/stl-viewer)** · [pages](https://sabas0ba.github.io/stl-viewer/) · <sub>2026-08-30</sub><br>
+  Single-file offline STL viewer with 1:1 scale PDF drawing export
+- **[vrc_sabaaccessory](https://github.com/sabas0ba/vrc_sabaaccessory)** · [pages](https://sabas0ba.github.io/vrc_sabaaccessory/) · <sub>2026-08-30</sub><br>
+  Avatar props for VRChat
+- **[vrc_sabatools](https://github.com/sabas0ba/vrc_sabatools)** · [pages](https://sabas0ba.github.io/vrc_sabatools/) · <sub>2026-08-29</sub><br>
+  Tools for VRChat Avatar/World
+- **[vrc_sabashader](https://github.com/sabas0ba/vrc_sabashader)** · [pages](https://sabas0ba.github.io/vrc_sabashader/) · <sub>2026-08-28</sub><br>
+  Shader assets for VRChat
+- **[hello_veryl](https://github.com/sabas0ba/hello_veryl)** · [pages](https://sabas0ba.github.io/hello_veryl/) · <sub>2026-08-28</sub><br>
+  Veryl + open-source FPGA toolchain playground for Tang Nano 9K (GW1NR-9C)
+- **[kicad_skills](https://github.com/sabas0ba/kicad_skills)** · [pages](https://sabas0ba.github.io/kicad_skills/) · <sub>2026-08-28</sub><br>
+  Container-based toolkit for circuit design: datasheets, SPICE simulation and KiCad review
+- **[dowel](https://github.com/sabas0ba/dowel)** · [pages](https://sabas0ba.github.io/dowel/) · <sub>2026-08-28</sub><br>
+  A build system for C and C++ with incremental manifest evaluation and typed values that carry provenance
+- **[deco](https://github.com/sabas0ba/deco)** · [pages](https://sabas0ba.github.io/deco/) · <sub>2026-08-28</sub><br>
+  A lightweight, VS Code-compatible text editor written in Rust. No Electron.
+- **[stone](https://github.com/sabas0ba/stone)** · [pages](https://sabas0ba.github.io/stone/) · <sub>2026-08-26</sub><br>
+  Compiler bootstrap from hand-encoded RV32 binary on QEMU
 - **[vrc_sabaprops](https://github.com/sabas0ba/vrc_sabaprops)** · [pages](https://sabas0ba.github.io/vrc_sabaprops/) · <sub>2026-08-25</sub><br>
   World props for VRChat
-- **[kicad_skills](https://github.com/sabas0ba/kicad_skills)** · [pages](https://sabas0ba.github.io/kicad_skills/) · <sub>2026-08-25</sub><br>
-  Container-based toolkit for circuit design: datasheets, SPICE simulation and KiCad review
-- **[vrc_sabashader](https://github.com/sabas0ba/vrc_sabashader)** · [pages](https://sabas0ba.github.io/vrc_sabashader/) · <sub>2026-08-25</sub><br>
-  Shader assets for VRChat
-- **[dotfiles](https://github.com/sabas0ba/dotfiles)** · [pages](https://sabas0ba.github.io/dotfiles/) · <sub>2026-08-25</sub><br>
-  Reproducible Nix development environment: one pinned tool list shared by the dev shell, container image, and WSL.
-- **[stone](https://github.com/sabas0ba/stone)** · [pages](https://sabas0ba.github.io/stone/) · <sub>2026-08-25</sub><br>
-  Compiler bootstrap from hand-encoded RV32 binary on QEMU
-- **[deco](https://github.com/sabas0ba/deco)** · [pages](https://sabas0ba.github.io/deco/) · <sub>2026-08-25</sub><br>
-  A lightweight, VS Code-compatible text editor written in Rust. No Electron.
-- **[dowel](https://github.com/sabas0ba/dowel)** · [pages](https://sabas0ba.github.io/dowel/) · <sub>2026-08-24</sub><br>
-  A build system for C and C++ with incremental manifest evaluation and typed values that carry provenance
-- **[hello_veryl](https://github.com/sabas0ba/hello_veryl)** · [pages](https://sabas0ba.github.io/hello_veryl/) · <sub>2026-08-23</sub><br>
-  Veryl + open-source FPGA toolchain playground for Tang Nano 9K (GW1NR-9C)
 - **[dowel_examples](https://github.com/sabas0ba/dowel_examples)** · [pages](https://sabas0ba.github.io/dowel_examples/) · <sub>2026-08-21</sub><br>
   examples for sabas0ba/dowel
-- **[stl-viewer](https://github.com/sabas0ba/stl-viewer)** · [pages](https://sabas0ba.github.io/stl-viewer/) · <sub>2026-08-20</sub><br>
-  Single-file offline STL viewer with 1:1 scale PDF drawing export
 - **[text-watermark-sample](https://github.com/sabas0ba/text-watermark-sample)** · [pages](https://sabas0ba.github.io/text-watermark-sample/) · <sub>2026-08-16</sub><br>
   Text watermarking by word choice
 - **[rpi-provision](https://github.com/sabas0ba/rpi-provision)** · [pages](https://sabas0ba.github.io/rpi-provision/) · <sub>2026-08-12</sub><br>
