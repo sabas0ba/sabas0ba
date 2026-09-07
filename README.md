@@ -3,8 +3,16 @@
 mochimochi engineer. here are my hobby works:
 
 <!-- INDEX:START -->
-- **[vivado-container-suite](https://github.com/sabas0ba/vivado-container-suite)** · [pages](https://sabas0ba.github.io/vivado-container-suite/) · <sub>2026-09-03</sub><br>
+- **[stone](https://github.com/sabas0ba/stone)** · [pages](https://sabas0ba.github.io/stone/) · <sub>2026-09-05</sub><br>
+  Compiler bootstrap from hand-encoded RV32 binary on QEMU
+- **[dotfiles](https://github.com/sabas0ba/dotfiles)** · [pages](https://sabas0ba.github.io/dotfiles/) · <sub>2026-09-05</sub><br>
+  Reproducible Nix development environment: one pinned tool list shared by the dev shell, container image, and WSL.
+- **[deco](https://github.com/sabas0ba/deco)** · [pages](https://sabas0ba.github.io/deco/) · <sub>2026-09-05</sub><br>
+  A lightweight, VS Code-compatible text editor written in Rust. No Electron.
+- **[vivado-container-suite](https://github.com/sabas0ba/vivado-container-suite)** · [pages](https://sabas0ba.github.io/vivado-container-suite/) · <sub>2026-09-04</sub><br>
   Container wrapper for AMD vivado
+- **[pages-style](https://github.com/sabas0ba/pages-style)** · [pages](https://sabas0ba.github.io/pages-style/) · <sub>2026-09-03</sub><br>
+  sabas0ba design css
 - **[dowel_examples](https://github.com/sabas0ba/dowel_examples)** · [pages](https://sabas0ba.github.io/dowel_examples/) · <sub>2026-09-02</sub><br>
   examples for sabas0ba/dowel
 - **[vrc_sabaaccessory](https://github.com/sabas0ba/vrc_sabaaccessory)** · [pages](https://sabas0ba.github.io/vrc_sabaaccessory/) · <sub>2026-09-02</sub><br>
@@ -15,12 +23,6 @@ mochimochi engineer. here are my hobby works:
   Text watermarking by word choice
 - **[vrc_sabashader](https://github.com/sabas0ba/vrc_sabashader)** · [pages](https://sabas0ba.github.io/vrc_sabashader/) · <sub>2026-09-02</sub><br>
   Shader assets for VRChat
-- **[dotfiles](https://github.com/sabas0ba/dotfiles)** · [pages](https://sabas0ba.github.io/dotfiles/) · <sub>2026-09-02</sub><br>
-  Reproducible Nix development environment: one pinned tool list shared by the dev shell, container image, and WSL.
-- **[deco](https://github.com/sabas0ba/deco)** · [pages](https://sabas0ba.github.io/deco/) · <sub>2026-09-01</sub><br>
-  A lightweight, VS Code-compatible text editor written in Rust. No Electron.
-- **[stone](https://github.com/sabas0ba/stone)** · [pages](https://sabas0ba.github.io/stone/) · <sub>2026-08-31</sub><br>
-  Compiler bootstrap from hand-encoded RV32 binary on QEMU
 - **[stl-viewer](https://github.com/sabas0ba/stl-viewer)** · [pages](https://sabas0ba.github.io/stl-viewer/) · <sub>2026-08-30</sub><br>
   Single-file offline STL viewer with 1:1 scale PDF drawing export
 - **[vrc_sabatools](https://github.com/sabas0ba/vrc_sabatools)** · [pages](https://sabas0ba.github.io/vrc_sabatools/) · <sub>2026-08-29</sub><br>

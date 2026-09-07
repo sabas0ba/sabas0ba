@@ -3,13 +3,13 @@
     "dark": "deco-dark.png",
     "file": "deco.png",
     "source": "screenshot",
-    "updated_at": "2026-09-01T00:53:48Z"
+    "updated_at": "2026-09-05T10:50:02Z"
   },
   "dotfiles": {
     "dark": "dotfiles-dark.png",
     "file": "dotfiles.png",
     "source": "screenshot",
-    "updated_at": "2026-09-02T03:58:03Z"
+    "updated_at": "2026-09-05T22:15:16Z"
   },
   "dowel": {
     "dark": "dowel-dark.png",
@@ -41,6 +41,12 @@
     "source": "screenshot",
     "updated_at": "2026-08-28T12:16:17Z"
   },
+  "pages-style": {
+    "dark": "pages-style-dark.png",
+    "file": "pages-style.png",
+    "source": "screenshot",
+    "updated_at": "2026-09-03T13:26:42Z"
+  },
   "retrix": {
     "dark": "",
     "file": "retrix.png",
@@ -69,7 +75,7 @@
     "dark": "",
     "file": "stone.png",
     "source": "screenshot",
-    "updated_at": "2026-08-31T10:59:19Z"
+    "updated_at": "2026-09-05T22:16:41Z"
   },
   "text-watermark-sample": {
     "dark": "text-watermark-sample-dark.png",
@@ -87,7 +93,7 @@
     "dark": "vivado-container-suite-dark.png",
     "file": "vivado-container-suite.png",
     "source": "screenshot",
-    "updated_at": "2026-09-03T02:21:50Z"
+    "updated_at": "2026-09-04T11:27:29Z"
   },
   "vrc_sabaaccessory": {
     "dark": "vrc_sabaaccessory-dark.png",
