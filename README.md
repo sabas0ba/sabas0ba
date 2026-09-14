@@ -3,12 +3,20 @@
 mochimochi engineer. here are my hobby works:
 
 <!-- INDEX:START -->
-- **[stone](https://github.com/sabas0ba/stone)** · [pages](https://sabas0ba.github.io/stone/) · <sub>2026-09-05</sub><br>
-  Compiler bootstrap from hand-encoded RV32 binary on QEMU
-- **[dotfiles](https://github.com/sabas0ba/dotfiles)** · [pages](https://sabas0ba.github.io/dotfiles/) · <sub>2026-09-05</sub><br>
+- **[vrc_sabaprops](https://github.com/sabas0ba/vrc_sabaprops)** · [pages](https://sabas0ba.github.io/vrc_sabaprops/) · <sub>2026-09-13</sub><br>
+  World props for VRChat
+- **[kicad_skills](https://github.com/sabas0ba/kicad_skills)** · [pages](https://sabas0ba.github.io/kicad_skills/) · <sub>2026-09-12</sub><br>
+  Container-based toolkit for circuit design: datasheets, SPICE simulation and KiCad review
+- **[dotfiles](https://github.com/sabas0ba/dotfiles)** · [pages](https://sabas0ba.github.io/dotfiles/) · <sub>2026-09-12</sub><br>
   Reproducible Nix development environment: one pinned tool list shared by the dev shell, container image, and WSL.
-- **[deco](https://github.com/sabas0ba/deco)** · [pages](https://sabas0ba.github.io/deco/) · <sub>2026-09-05</sub><br>
+- **[stone](https://github.com/sabas0ba/stone)** · [pages](https://sabas0ba.github.io/stone/) · <sub>2026-09-12</sub><br>
+  Compiler bootstrap from hand-encoded RV32 binary on QEMU
+- **[dowel](https://github.com/sabas0ba/dowel)** · [pages](https://sabas0ba.github.io/dowel/) · <sub>2026-09-12</sub><br>
+  A build system for C and C++ with incremental manifest evaluation and typed values that carry provenance
+- **[deco](https://github.com/sabas0ba/deco)** · [pages](https://sabas0ba.github.io/deco/) · <sub>2026-09-12</sub><br>
   A lightweight, VS Code-compatible text editor written in Rust. No Electron.
+- **[vrc_sabatools](https://github.com/sabas0ba/vrc_sabatools)** · [pages](https://sabas0ba.github.io/vrc_sabatools/) · <sub>2026-09-07</sub><br>
+  Tools for VRChat Avatar/World
 - **[vivado-container-suite](https://github.com/sabas0ba/vivado-container-suite)** · [pages](https://sabas0ba.github.io/vivado-container-suite/) · <sub>2026-09-04</sub><br>
   Container wrapper for AMD vivado
 - **[pages-style](https://github.com/sabas0ba/pages-style)** · [pages](https://sabas0ba.github.io/pages-style/) · <sub>2026-09-03</sub><br>
@@ -25,16 +33,8 @@ mochimochi engineer. here are my hobby works:
   Shader assets for VRChat
 - **[stl-viewer](https://github.com/sabas0ba/stl-viewer)** · [pages](https://sabas0ba.github.io/stl-viewer/) · <sub>2026-08-30</sub><br>
   Single-file offline STL viewer with 1:1 scale PDF drawing export
-- **[vrc_sabatools](https://github.com/sabas0ba/vrc_sabatools)** · [pages](https://sabas0ba.github.io/vrc_sabatools/) · <sub>2026-08-29</sub><br>
-  Tools for VRChat Avatar/World
 - **[hello_veryl](https://github.com/sabas0ba/hello_veryl)** · [pages](https://sabas0ba.github.io/hello_veryl/) · <sub>2026-08-28</sub><br>
   Veryl + open-source FPGA toolchain playground for Tang Nano 9K (GW1NR-9C)
-- **[kicad_skills](https://github.com/sabas0ba/kicad_skills)** · [pages](https://sabas0ba.github.io/kicad_skills/) · <sub>2026-08-28</sub><br>
-  Container-based toolkit for circuit design: datasheets, SPICE simulation and KiCad review
-- **[dowel](https://github.com/sabas0ba/dowel)** · [pages](https://sabas0ba.github.io/dowel/) · <sub>2026-08-28</sub><br>
-  A build system for C and C++ with incremental manifest evaluation and typed values that carry provenance
-- **[vrc_sabaprops](https://github.com/sabas0ba/vrc_sabaprops)** · [pages](https://sabas0ba.github.io/vrc_sabaprops/) · <sub>2026-08-25</sub><br>
-  World props for VRChat
 - **[rpi-provision](https://github.com/sabas0ba/rpi-provision)** · [pages](https://sabas0ba.github.io/rpi-provision/) · <sub>2026-08-12</sub><br>
   Declarative first-boot provisioning for Raspberry Pi 5 SD cards.
 - **[hoshizora](https://github.com/sabas0ba/hoshizora)** · [pages](https://sabas0ba.github.io/hoshizora/) · <sub>2026-08-11</sub><br>
