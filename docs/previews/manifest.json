@@ -3,13 +3,13 @@
     "dark": "deco-dark.png",
     "file": "deco.png",
     "source": "screenshot",
-    "updated_at": "2026-09-14T14:02:23Z"
+    "updated_at": "2026-09-26T02:42:18Z"
   },
   "dotfiles": {
     "dark": "dotfiles-dark.png",
     "file": "dotfiles.png",
     "source": "screenshot",
-    "updated_at": "2026-09-12T17:49:14Z"
+    "updated_at": "2026-09-24T03:43:53Z"
   },
   "dowel": {
     "dark": "dowel-dark.png",
@@ -75,7 +75,13 @@
     "dark": "",
     "file": "stone.png",
     "source": "screenshot",
-    "updated_at": "2026-09-19T03:38:51Z"
+    "updated_at": "2026-09-28T04:04:08Z"
+  },
+  "test_vrc_sabax": {
+    "dark": "test_vrc_sabax-dark.png",
+    "file": "test_vrc_sabax.png",
+    "source": "screenshot",
+    "updated_at": "2026-09-23T12:57:53Z"
   },
   "text-watermark-sample": {
     "dark": "text-watermark-sample-dark.png",
@@ -105,13 +111,7 @@
     "dark": "vrc_sabaprops-dark.png",
     "file": "vrc_sabaprops.png",
     "source": "screenshot",
-    "updated_at": "2026-09-13T05:53:40Z"
-  },
-  "vrc_sabashader": {
-    "dark": "vrc_sabashader-dark.png",
-    "file": "vrc_sabashader.png",
-    "source": "screenshot",
-    "updated_at": "2026-09-02T10:42:05Z"
+    "updated_at": "2026-09-26T10:38:48Z"
   },
   "vrc_sabatools": {
     "dark": "vrc_sabatools-dark.png",
