@@ -39,13 +39,19 @@
     "dark": "kicad_skills-dark.png",
     "file": "kicad_skills.png",
     "source": "screenshot",
-    "updated_at": "2026-10-03T06:27:05Z"
+    "updated_at": "2026-10-05T06:29:49Z"
   },
   "pages-style": {
     "dark": "pages-style-dark.png",
     "file": "pages-style.png",
     "source": "screenshot",
     "updated_at": "2026-09-03T13:26:42Z"
+  },
+  "printables": {
+    "dark": "printables-dark.png",
+    "file": "printables.png",
+    "source": "screenshot",
+    "updated_at": "2026-10-05T06:00:41Z"
   },
   "retrix": {
     "dark": "",
@@ -111,7 +117,7 @@
     "dark": "vrc_sabaprops-dark.png",
     "file": "vrc_sabaprops.png",
     "source": "screenshot",
-    "updated_at": "2026-09-29T03:46:10Z"
+    "updated_at": "2026-10-05T12:56:19Z"
   },
   "vrc_sabatools": {
     "dark": "vrc_sabatools-dark.png",

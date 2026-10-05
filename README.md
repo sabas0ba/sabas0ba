@@ -3,10 +3,14 @@
 mochimochi engineer. here are my hobby works:
 
 <!-- INDEX:START -->
+- **[vrc_sabaprops](https://github.com/sabas0ba/vrc_sabaprops)** · [pages](https://sabas0ba.github.io/vrc_sabaprops/) · <sub>2026-10-05</sub><br>
+  World props for VRChat
+- **[kicad_skills](https://github.com/sabas0ba/kicad_skills)** · [pages](https://sabas0ba.github.io/kicad_skills/) · <sub>2026-10-05</sub><br>
+  Container-based toolkit for circuit design: datasheets, SPICE simulation and KiCad review
+- **[printables](https://github.com/sabas0ba/printables)** · [pages](https://sabas0ba.github.io/printables/) · <sub>2026-10-05</sub><br>
+  3D printable props
 - **[dotfiles](https://github.com/sabas0ba/dotfiles)** · [pages](https://sabas0ba.github.io/dotfiles/) · <sub>2026-10-03</sub><br>
   Reproducible Nix development environment: one pinned tool list shared by the dev shell, container image, and WSL.
-- **[kicad_skills](https://github.com/sabas0ba/kicad_skills)** · [pages](https://sabas0ba.github.io/kicad_skills/) · <sub>2026-10-03</sub><br>
-  Container-based toolkit for circuit design: datasheets, SPICE simulation and KiCad review
 - **[deco](https://github.com/sabas0ba/deco)** · [pages](https://sabas0ba.github.io/deco/) · <sub>2026-10-01</sub><br>
   A lightweight, VS Code-compatible text editor written in Rust. No Electron.
 - **[stone](https://github.com/sabas0ba/stone)** · [pages](https://sabas0ba.github.io/stone/) · <sub>2026-09-30</sub><br>
@@ -19,8 +23,6 @@ mochimochi engineer. here are my hobby works:
   Avatar props for VRChat
 - **[vrc_sabashader](https://github.com/sabas0ba/vrc_sabashader)** · [pages](https://sabas0ba.github.io/vrc_sabashader/) · <sub>2026-09-29</sub><br>
   Shader assets for VRChat
-- **[vrc_sabaprops](https://github.com/sabas0ba/vrc_sabaprops)** · [pages](https://sabas0ba.github.io/vrc_sabaprops/) · <sub>2026-09-29</sub><br>
-  World props for VRChat
 - **[test_vrc_sabax](https://github.com/sabas0ba/test_vrc_sabax)** · [pages](https://sabas0ba.github.io/test_vrc_sabax/) · <sub>2026-09-23</sub><br>
   Verification & validation for vrc_saba.*
 - **[dowel](https://github.com/sabas0ba/dowel)** · [pages](https://sabas0ba.github.io/dowel/) · <sub>2026-09-12</sub><br>
