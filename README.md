@@ -3,18 +3,18 @@
 mochimochi engineer. here are my hobby works:
 
 <!-- INDEX:START -->
-- **[vrc_sabaprops](https://github.com/sabas0ba/vrc_sabaprops)** · [pages](https://sabas0ba.github.io/vrc_sabaprops/) · <sub>2026-10-05</sub><br>
+- **[vrc_sabaprops](https://github.com/sabas0ba/vrc_sabaprops)** · [pages](https://sabas0ba.github.io/vrc_sabaprops/) · <sub>2026-10-12</sub><br>
   World props for VRChat
-- **[kicad_skills](https://github.com/sabas0ba/kicad_skills)** · [pages](https://sabas0ba.github.io/kicad_skills/) · <sub>2026-10-05</sub><br>
-  Container-based toolkit for circuit design: datasheets, SPICE simulation and KiCad review
-- **[printables](https://github.com/sabas0ba/printables)** · [pages](https://sabas0ba.github.io/printables/) · <sub>2026-10-05</sub><br>
+- **[stone](https://github.com/sabas0ba/stone)** · [pages](https://sabas0ba.github.io/stone/) · <sub>2026-10-09</sub><br>
+  Compiler bootstrap from hand-encoded RV32 binary on QEMU
+- **[deco](https://github.com/sabas0ba/deco)** · [pages](https://sabas0ba.github.io/deco/) · <sub>2026-10-09</sub><br>
+  A lightweight, VS Code-compatible text editor written in Rust. No Electron.
+- **[printables](https://github.com/sabas0ba/printables)** · [pages](https://sabas0ba.github.io/printables/) · <sub>2026-10-09</sub><br>
   3D printable props
+- **[kicad_skills](https://github.com/sabas0ba/kicad_skills)** · [pages](https://sabas0ba.github.io/kicad_skills/) · <sub>2026-10-07</sub><br>
+  Container-based toolkit for circuit design: datasheets, SPICE simulation and KiCad review
 - **[dotfiles](https://github.com/sabas0ba/dotfiles)** · [pages](https://sabas0ba.github.io/dotfiles/) · <sub>2026-10-03</sub><br>
   Reproducible Nix development environment: one pinned tool list shared by the dev shell, container image, and WSL.
-- **[deco](https://github.com/sabas0ba/deco)** · [pages](https://sabas0ba.github.io/deco/) · <sub>2026-10-01</sub><br>
-  A lightweight, VS Code-compatible text editor written in Rust. No Electron.
-- **[stone](https://github.com/sabas0ba/stone)** · [pages](https://sabas0ba.github.io/stone/) · <sub>2026-09-30</sub><br>
-  Compiler bootstrap from hand-encoded RV32 binary on QEMU
 - **[vrc_sabatools](https://github.com/sabas0ba/vrc_sabatools)** · [pages](https://sabas0ba.github.io/vrc_sabatools/) · <sub>2026-09-29</sub><br>
   Tools for VRChat Avatar/World
 - **[stl-viewer](https://github.com/sabas0ba/stl-viewer)** · [pages](https://sabas0ba.github.io/stl-viewer/) · <sub>2026-09-29</sub><br>
