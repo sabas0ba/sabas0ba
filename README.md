@@ -3,14 +3,16 @@
 mochimochi engineer. here are my hobby works:
 
 <!-- INDEX:START -->
+- **[stone](https://github.com/sabas0ba/stone)** · [pages](https://sabas0ba.github.io/stone/) · <sub>2026-10-16</sub><br>
+  Compiler bootstrap from hand-encoded RV32 binary on QEMU
+- **[deco](https://github.com/sabas0ba/deco)** · [pages](https://sabas0ba.github.io/deco/) · <sub>2026-10-15</sub><br>
+  A lightweight, VS Code-compatible text editor written in Rust. No Electron.
+- **[vr-dummy-headset](https://github.com/sabas0ba/vr-dummy-headset)** · [pages](https://sabas0ba.github.io/vr-dummy-headset/) · <sub>2026-10-12</sub><br>
+  Mock VR headset for debug
+- **[printables](https://github.com/sabas0ba/printables)** · [pages](https://sabas0ba.github.io/printables/) · <sub>2026-10-12</sub><br>
+  3D printable props
 - **[vrc_sabaprops](https://github.com/sabas0ba/vrc_sabaprops)** · [pages](https://sabas0ba.github.io/vrc_sabaprops/) · <sub>2026-10-12</sub><br>
   World props for VRChat
-- **[stone](https://github.com/sabas0ba/stone)** · [pages](https://sabas0ba.github.io/stone/) · <sub>2026-10-09</sub><br>
-  Compiler bootstrap from hand-encoded RV32 binary on QEMU
-- **[deco](https://github.com/sabas0ba/deco)** · [pages](https://sabas0ba.github.io/deco/) · <sub>2026-10-09</sub><br>
-  A lightweight, VS Code-compatible text editor written in Rust. No Electron.
-- **[printables](https://github.com/sabas0ba/printables)** · [pages](https://sabas0ba.github.io/printables/) · <sub>2026-10-09</sub><br>
-  3D printable props
 - **[kicad_skills](https://github.com/sabas0ba/kicad_skills)** · [pages](https://sabas0ba.github.io/kicad_skills/) · <sub>2026-10-07</sub><br>
   Container-based toolkit for circuit design: datasheets, SPICE simulation and KiCad review
 - **[dotfiles](https://github.com/sabas0ba/dotfiles)** · [pages](https://sabas0ba.github.io/dotfiles/) · <sub>2026-10-03</sub><br>

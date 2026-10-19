@@ -3,7 +3,7 @@
     "dark": "deco-dark.png",
     "file": "deco.png",
     "source": "screenshot",
-    "updated_at": "2026-10-09T03:20:18Z"
+    "updated_at": "2026-10-15T12:34:22Z"
   },
   "dotfiles": {
     "dark": "dotfiles-dark.png",
@@ -51,7 +51,7 @@
     "dark": "printables-dark.png",
     "file": "printables.png",
     "source": "screenshot",
-    "updated_at": "2026-10-09T03:19:08Z"
+    "updated_at": "2026-10-12T07:09:01Z"
   },
   "retrix": {
     "dark": "",
@@ -81,7 +81,7 @@
     "dark": "",
     "file": "stone.png",
     "source": "screenshot",
-    "updated_at": "2026-10-09T12:41:25Z"
+    "updated_at": "2026-10-16T03:37:52Z"
   },
   "test_vrc_sabax": {
     "dark": "test_vrc_sabax-dark.png",
@@ -107,6 +107,12 @@
     "source": "screenshot",
     "updated_at": "2026-09-04T11:27:29Z"
   },
+  "vr-dummy-headset": {
+    "dark": "",
+    "file": "vr-dummy-headset.png",
+    "source": "screenshot",
+    "updated_at": "2026-10-12T13:49:56Z"
+  },
   "vrc_sabaaccessory": {
     "dark": "vrc_sabaaccessory-dark.png",
     "file": "vrc_sabaaccessory.png",
@@ -117,7 +123,7 @@
     "dark": "vrc_sabaprops-dark.png",
     "file": "vrc_sabaprops.png",
     "source": "screenshot",
-    "updated_at": "2026-10-12T05:37:35Z"
+    "updated_at": "2026-10-12T06:21:37Z"
   },
   "vrc_sabatools": {
     "dark": "vrc_sabatools-dark.png",
